@@ -1,2 +1,2 @@
-# job_email_agent
+# EmailStrat
 Making an agentic workflow to get me a job...
