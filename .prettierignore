@@ -1,0 +1,8 @@
+node_modules
+dist
+build
+# Vendored design references (keep verbatim for comparison)
+frontend/src/design
+**/_generated
+*.tsbuildinfo
+bun.lock

@@ -1,0 +1,5 @@
+# Convex generated client + server code
+_generated/
+
+# Convex local deployment env
+.env.local

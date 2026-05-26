@@ -1,0 +1,680 @@
+.outreachIcon {
+  font-family: 'Material Symbols Outlined';
+  line-height: 1;
+  user-select: none;
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 20;
+}
+
+.outreachIconFill {
+  font-variation-settings:
+    'FILL' 1,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 20;
+}
+
+.outreachIconSize14 {
+  font-size: 14px;
+}
+.outreachIconSize16 {
+  font-size: 16px;
+}
+.outreachIconSize18 {
+  font-size: 18px;
+}
+.outreachIconSize20 {
+  font-size: 20px;
+}
+
+.outreachButton,
+.outreachSplitMain,
+.outreachSplitToggle {
+  font:
+    500 12px/16px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(27, 39, 51, 0.06);
+  cursor: pointer;
+  transition: 200ms ease;
+  white-space: nowrap;
+}
+
+.outreachButton-md {
+  height: 40px;
+  padding: 0 16px;
+}
+
+.outreachButton-sm {
+  height: 36px;
+  padding: 0 16px;
+}
+
+.outreachBtnPrimary {
+  background: #004ac6;
+  color: #ffffff;
+  border: none;
+}
+
+.outreachBtnSecondary {
+  background: #ffffff;
+  color: #505f76;
+  border: 1px solid #c3c6d7;
+}
+
+.outreachBtnPrimary:hover {
+  background: #003ea8;
+}
+
+.outreachBtnSecondary:hover {
+  background: #f2f4f6;
+}
+
+.outreachSplitButton {
+  display: inline-flex;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(27, 39, 51, 0.06);
+  overflow: hidden;
+}
+
+.outreachSplitMain {
+  height: 36px;
+  padding: 0 16px;
+  border-right: 1px solid #b4c5ff;
+}
+
+.outreachSplitToggle {
+  height: 36px;
+  padding: 0 4px;
+}
+
+.outreachSidebar {
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+  width: 240px;
+  flex-shrink: 0;
+  height: 100%;
+  padding: 16px;
+  background: #f7f9fb;
+  border-right: 1px solid #c3c6d7;
+  overflow-y: auto;
+}
+
+.outreachSidebarHeader,
+.outreachBrandText,
+.outreachSidebarNav,
+.outreachPageHeaderText,
+.outreachCompanyText,
+.outreachTable,
+.outreachTableHeadGroup,
+.outreachTableBody {
+  display: flex;
+  flex-direction: column;
+}
+
+.outreachSidebarHeader {
+  gap: 16px;
+}
+
+.outreachSidebarBrand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.outreachBrandMark,
+.outreachCompanyAvatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.outreachBrandMark {
+  background: #004ac6;
+  color: #ffffff;
+}
+
+.outreachBrandTitle {
+  font:
+    800 18px/24px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #191c1e;
+}
+
+.outreachBrandSubtitle,
+.outreachFilterLabel,
+.outreachActiveLabel {
+  font:
+    500 12px/16px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: 0.05em;
+  color: #434655;
+}
+
+.outreachSidebarNav {
+  gap: 4px;
+  flex: 1;
+}
+
+.outreachNavItem {
+  font:
+    500 12px/16px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #434655;
+  cursor: pointer;
+  text-align: left;
+  transition: 200ms ease;
+}
+
+.outreachNavItem:hover {
+  background: #eceef0;
+}
+
+.outreachNavItemActive {
+  background: #d0e1fb;
+  color: #54647a;
+  font-weight: 700;
+}
+
+.outreachPageHeader,
+.outreachFilterFooter,
+.outreachBulkFooter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.outreachPageHeader {
+  gap: 16px;
+}
+
+.outreachPageHeaderText {
+  gap: 4px;
+}
+
+.outreachPageTitle {
+  font:
+    600 24px/32px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: -0.01em;
+  color: #191c1e;
+}
+
+.outreachPageSubtitle {
+  font:
+    400 14px/20px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #434655;
+  max-width: 42rem;
+}
+
+.outreachFilterConsole,
+.outreachResults {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #c3c6d7;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(27, 39, 51, 0.06);
+}
+
+.outreachFilterConsole {
+  gap: 24px;
+  padding: 24px;
+}
+
+.outreachFilterGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.outreachFilterField {
+  display: flex;
+  flex: 1 1 100%;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.outreachSearchField {
+  display: flex;
+  flex: 1 1 100%;
+  position: relative;
+}
+
+.outreachInputWrap {
+  display: flex;
+  position: relative;
+}
+
+.outreachSearchIcon,
+.outreachTechIcon {
+  display: flex;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #737686;
+  pointer-events: none;
+}
+
+.outreachSearchIcon {
+  left: 12px;
+}
+.outreachTechIcon {
+  right: 12px;
+}
+
+.outreachInput,
+.outreachSelect {
+  font:
+    400 14px/20px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  width: 100%;
+  height: 40px;
+  background: #f7f9fb;
+  border: 1px solid #c3c6d7;
+  border-radius: 4px;
+  color: #191c1e;
+  outline: none;
+  transition: 120ms ease;
+}
+
+.outreachSearchInput {
+  padding: 0 16px 0 40px;
+}
+.outreachTechInput {
+  padding: 0 40px 0 12px;
+}
+.outreachSelect {
+  padding: 0 12px;
+  appearance: none;
+  cursor: pointer;
+}
+
+.outreachInput:focus,
+.outreachSelect:focus {
+  border-color: #004ac6;
+  box-shadow: 0 0 0 1px #004ac6;
+}
+
+.outreachFilterChip,
+.outreachTechBadge,
+.outreachConfidenceBadge,
+.outreachSelectionPill,
+.outreachCountPill {
+  display: inline-flex;
+  align-items: center;
+}
+
+.outreachFilterChip {
+  font:
+    400 12px/16px 'JetBrains Mono',
+    ui-monospace,
+    Menlo,
+    monospace;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #eceef0;
+  border: 1px solid #c3c6d7;
+  color: #191c1e;
+}
+
+.outreachChipClose {
+  display: inline-flex;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  color: #434655;
+}
+
+.outreachChipClose:hover {
+  color: #ba1a1a;
+}
+
+.outreachActiveFilters,
+.outreachActiveChips,
+.outreachFilterActions,
+.outreachFooterGroup,
+.outreachResultsTitle,
+.outreachResultsTools,
+.outreachCompanyCell,
+.outreachTechWrap {
+  display: flex;
+  align-items: center;
+}
+
+.outreachActiveFilters {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.outreachActiveLabel {
+  color: #737686;
+}
+
+.outreachActiveChips,
+.outreachTechWrap {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.outreachFilterActions,
+.outreachFooterGroup {
+  gap: 12px;
+}
+
+.outreachFilterFooter {
+  padding-top: 16px;
+  border-top: 1px solid #c3c6d7;
+}
+
+.outreachResults {
+  flex: 0 0 auto;
+  min-height: 400px;
+  overflow: hidden;
+}
+
+.outreachResultsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #c3c6d7;
+}
+
+.outreachResultsTitle {
+  font:
+    600 18px/24px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #191c1e;
+  gap: 8px;
+}
+
+.outreachCountPill {
+  font:
+    500 12px/16px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: 0.05em;
+  background: #e6e8ea;
+  color: #434655;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.outreachResultsTools {
+  gap: 8px;
+}
+
+.outreachIconBtn {
+  display: inline-flex;
+  border: none;
+  background: transparent;
+  padding: 4px;
+  border-radius: 4px;
+  color: #737686;
+  cursor: pointer;
+  transition: 120ms ease;
+}
+
+.outreachIconBtn:hover {
+  background: #eceef0;
+  color: #191c1e;
+}
+
+.outreachTableWrap {
+  display: flex;
+  flex: 0 0 auto;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 0;
+}
+
+.outreachTable {
+  width: 100%;
+  min-width: 900px;
+}
+
+.outreachTableHeadGroup {
+  position: sticky;
+  top: 0;
+  background: #eceef0;
+  z-index: 1;
+  border-bottom: 1px solid #c3c6d7;
+}
+
+.outreachTableHeaderRow,
+.outreachRow {
+  display: flex;
+  width: 100%;
+}
+
+.outreachTableCell,
+.outreachTableHeadCell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 16px 24px;
+}
+
+.outreachTableCell {
+  font:
+    400 13px/18px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #191c1e;
+}
+
+.outreachTableHeadCell {
+  font:
+    500 12px/16px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: 0.05em;
+  color: #434655;
+  text-transform: uppercase;
+}
+
+.outreachRowSelected {
+  background: rgba(180, 197, 255, 0.2);
+  box-shadow: inset 2px 0 0 #004ac6;
+}
+
+.outreachRow:hover {
+  background: #f2f4f6;
+}
+
+.outreachColSelect {
+  flex: 0 0 48px;
+}
+.outreachColCompany {
+  flex: 1.5 1 240px;
+}
+.outreachColStandard {
+  flex: 1 1 160px;
+}
+.outreachColSize {
+  flex: 0.75 1 120px;
+}
+.outreachColTech {
+  flex: 1.25 1 180px;
+}
+.outreachColConfidence {
+  flex: 0 0 120px;
+  justify-content: center;
+}
+
+.outreachCompanyCell {
+  gap: 12px;
+}
+
+.outreachCompanyAvatar {
+  font:
+    600 18px/24px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background: #e6e8ea;
+  border: 1px solid #c3c6d7;
+  color: #191c1e;
+  font-weight: 700;
+}
+
+.outreachCompanyName {
+  font:
+    500 13px/18px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #191c1e;
+}
+
+.outreachCompanyDomain {
+  font:
+    400 12px/16px 'JetBrains Mono',
+    ui-monospace,
+    Menlo,
+    monospace;
+  color: #737686;
+}
+
+.outreachTechBadge {
+  font:
+    400 12px/16px 'JetBrains Mono',
+    ui-monospace,
+    Menlo,
+    monospace;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: #eceef0;
+  border: 1px solid #c3c6d7;
+  color: #434655;
+}
+
+.outreachConfidenceBadge {
+  font:
+    500 13px/18px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.outreachConfidence-positive {
+  color: #006242;
+  background: rgba(0, 125, 85, 0.1);
+}
+
+.outreachConfidence-neutral {
+  color: #434655;
+  background: #eceef0;
+}
+
+.outreachBulkFooter {
+  padding: 16px;
+  background: #f2f4f6;
+  border-top: 1px solid #c3c6d7;
+}
+
+.outreachSelectionPill {
+  font:
+    700 12px/16px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: 0.05em;
+  color: #004ac6;
+  background: #dbe1ff;
+  padding: 4px 12px;
+  border-radius: 9999px;
+}
+
+.outreachFooterHint {
+  font:
+    400 13px/18px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #737686;
+}
+
+@media (min-width: 768px) {
+  .outreachSidebar {
+    display: flex;
+  }
+
+  .outreachPageHeader {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .outreachFilterFooter,
+  .outreachBulkFooter {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .outreachFilterGrid {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .outreachFilterField {
+    flex-basis: calc(50% - 8px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .outreachFilterField {
+    flex-basis: calc(25% - 12px);
+  }
+}

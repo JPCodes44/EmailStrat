@@ -1,0 +1,33 @@
+{
+  "name": "emailstrat",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Custom email template generator — full-stack TypeScript monorepo.",
+  "workspaces": [
+    "common",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "bun --filter '@emailstrat/frontend' --filter '@emailstrat/backend' --parallel dev",
+    "dev:web": "bun run --cwd frontend dev",
+    "dev:backend": "bun run --cwd backend dev",
+    "build": "bun run --cwd common build && bun run --cwd frontend build",
+    "test": "bun run --cwd common test && bun run --cwd frontend test",
+    "typecheck": "bun run --cwd common typecheck && bun run --cwd frontend typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.1"
+  }
+}
