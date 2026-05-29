@@ -31,4 +31,11 @@ export default defineSchema({
     createdAt: v.string(),
     updatedAt: v.string(),
   }).index('by_name', ['name']),
+  artifacts: defineTable({
+    companyId: v.string(),
+    emailTemplate: v.string(),
+    resumeLatex: v.string(),
+    status: v.union(v.literal('pending'), v.literal('completed'), v.literal('failed')),
+    createdAt: v.string(),
+  }).index('by_companyId', ['companyId']),
 });

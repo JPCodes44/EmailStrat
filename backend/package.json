@@ -11,7 +11,8 @@
   "dependencies": {
     "@emailstrat/common": "*",
     "@google/genai": "^2.7.0",
-    "convex": "^1.17.4"
+    "convex": "^1.17.4",
+    "openai": "^4.0.0"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

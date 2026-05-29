@@ -626,10 +626,14 @@
   border-top: 1px solid #c3c6d7;
 }
 
+.generateButton,
 .drawerPrimary {
   height: 36px;
+  display: flex;
+  align-items: center;
   justify-content: center;
   gap: 4px;
+  padding: 0 16px;
   border: none;
   border-radius: 4px;
   background: #004ac6;
@@ -641,6 +645,12 @@
     sans-serif;
   letter-spacing: 0.05em;
   cursor: pointer;
+  transition: 160ms ease;
+}
+
+.generateButton:hover,
+.drawerPrimary:hover {
+  background: #003da3;
 }
 
 .drawerSecondaryActions {

@@ -1,12 +1,15 @@
-import { useCallback, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
-  companies,
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from 'react';
+import {
   companySizeOptions,
-  defaultSelectedIds,
-  discoveryMatches,
-  locationOptions,
   industryOptions,
-  initialFilterChips,
+  locationOptions,
   subRegions,
   cityOptionsMap,
 } from './data';
@@ -14,21 +17,51 @@ import {
   buildCompanyResearchCriteria,
   researchCompanies,
 } from './companyResearchApi';
-import type { FilterChipModel, SelectOption } from './types';
+import type { Company, FilterChipModel, SelectOption } from './types';
 
-const minimumSearchMs = 350;
-
-function wait(ms: number) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
+interface OutreachContextValue {
+  activeNavId: string;
+  setActiveNavId: (id: string) => void;
+  keywords: string;
+  setKeywords: (val: string) => void;
+  techStack: string;
+  setTechStack: (val: string) => void;
+  industry: string;
+  setIndustry: (val: string) => void;
+  companySize: string;
+  setCompanySize: (val: string) => void;
+  location: string;
+  onLocationChange: (val: string) => void;
+  locationOptions: (SelectOption | string)[];
+  region: string;
+  onRegionChange: (val: string) => void;
+  regionOptions: (SelectOption | string)[];
+  city: string;
+  onCityChange: (val: string) => void;
+  cityOptions: (SelectOption | string)[];
+  companyLimit: string;
+  setCompanyLimit: (val: string) => void;
+  chips: FilterChipModel[];
+  removeChip: (id: string) => void;
+  resultCompanies: Company[];
+  matches: number;
+  isSearching: boolean;
+  searchError: string | undefined;
+  selectedIds: Set<string>;
+  importedCompanies: Company[];
+  importToCampaign: () => void;
+  toggleRow: (id: string) => void;
+  toggleAll: () => void;
+  clearSelectedResults: () => void;
+  reset: () => void;
+  search: () => Promise<void>;
 }
 
-/**
- * Owns all interactive state for the discovery screen: filter inputs, active
- * chips, and row selection. Keeps the screen component a pure composition.
- */
-export function useScreenState() {
+const OutreachContext = createContext<OutreachContextValue | undefined>(
+  undefined,
+);
+
+export function OutreachProvider({ children }: { children: ReactNode }) {
   const [activeNavId, setActiveNavId] = useState('companies');
   const [keywords, setKeywords] = useState('');
   const [techStack, setTechStack] = useState('');
@@ -38,14 +71,13 @@ export function useScreenState() {
   const [region, setRegion] = useState('all');
   const [city, setCity] = useState('all');
   const [companyLimit, setCompanyLimit] = useState('50');
-  const [chips, setChips] = useState<FilterChipModel[]>(initialFilterChips);
-  const [resultCompanies, setResultCompanies] = useState(companies);
-  const [matches, setMatches] = useState(discoveryMatches);
+  const [chips, setChips] = useState<FilterChipModel[]>([]);
+  const [resultCompanies, setResultCompanies] = useState<Company[]>([]);
+  const [matches, setMatches] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | undefined>();
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    () => new Set(defaultSelectedIds),
-  );
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [importedCompanies, setImportedCompanies] = useState<Company[]>([]);
 
   const toggleRow = useCallback((id: string) => {
     setSelectedIds((current) => {
@@ -67,6 +99,38 @@ export function useScreenState() {
     );
   }, [resultCompanies]);
 
+  const clearSelectedResults = useCallback(() => {
+    setResultCompanies((current) =>
+      current.filter((company) => !selectedIds.has(company.id)),
+    );
+    setMatches((current) => Math.max(current - selectedIds.size, 0));
+    setSelectedIds(new Set());
+  }, [selectedIds]);
+
+  const importToCampaign = useCallback(() => {
+    const selected = resultCompanies.filter((c) => selectedIds.has(c.id));
+    if (selected.length === 0) {
+      alert('Please select at least one company to import.');
+      return;
+    }
+
+    // Check for duplicates before updating state
+    setImportedCompanies((prev) => {
+      const existingIds = new Set(prev.map((c) => c.id));
+      const uniqueNew = selected.filter((c) => !existingIds.has(c.id));
+
+      if (uniqueNew.length === 0) {
+        return prev;
+      }
+
+      return [...prev, ...uniqueNew];
+    });
+
+    // Alert outside the setter
+    alert(`Successfully processed import for ${selected.length} companies!`);
+    clearSelectedResults();
+  }, [resultCompanies, selectedIds, clearSelectedResults]);
+
   const removeChip = useCallback((id: string) => {
     setChips((current) => current.filter((chip) => chip.id !== id));
     if (id === 'keywords') setKeywords('');
@@ -85,14 +149,6 @@ export function useScreenState() {
     if (id === 'city') setCity('all');
     if (id === 'companyLimit') setCompanyLimit('50');
   }, []);
-
-  const clearSelectedResults = useCallback(() => {
-    setResultCompanies((current) =>
-      current.filter((company) => !selectedIds.has(company.id)),
-    );
-    setMatches((current) => Math.max(current - selectedIds.size, 0));
-    setSelectedIds(new Set());
-  }, [selectedIds]);
 
   const reset = useCallback(() => {
     setChips([]);
@@ -140,7 +196,6 @@ export function useScreenState() {
     setIsSearching(true);
     setSearchError(undefined);
 
-    // Sync chips with current filter values
     const nextChips: FilterChipModel[] = [];
     if (keywords.trim()) {
       nextChips.push({ id: 'keywords', label: `Keywords: ${keywords}` });
@@ -149,11 +204,14 @@ export function useScreenState() {
       nextChips.push({ id: 'techStack', label: `Tech: ${techStack}` });
     }
     if (industry !== 'all') {
-      const label = industryOptions.find((o) => o.value === industry)?.label || industry;
+      const label =
+        industryOptions.find((o) => o.value === industry)?.label || industry;
       nextChips.push({ id: 'industry', label: `Industry: ${label}` });
     }
     if (companySize !== 'any') {
-      const label = companySizeOptions.find((o) => o.value === companySize)?.label || companySize;
+      const label =
+        companySizeOptions.find((o) => o.value === companySize)?.label ||
+        companySize;
       nextChips.push({ id: 'companySize', label: `Size: ${label}` });
     }
 
@@ -168,26 +226,23 @@ export function useScreenState() {
       }
       nextChips.push({ id: 'location', label: `Location: ${finalLocation}` });
     }
-    
+
     if (companyLimit && companyLimit !== '50') {
       nextChips.push({ id: 'companyLimit', label: `Limit: ${companyLimit}` });
     }
     setChips(nextChips);
 
     try {
-      const [result] = await Promise.all([
-        researchCompanies(
-          buildCompanyResearchCriteria({
-            keywords,
-            industry,
-            companySize,
-            location: finalLocation,
-            techStack,
-            companyLimit,
-          }),
-        ),
-        wait(minimumSearchMs),
-      ]);
+      const result = await researchCompanies(
+        buildCompanyResearchCriteria({
+          keywords,
+          industry,
+          companySize,
+          location: finalLocation,
+          techStack,
+          companyLimit,
+        }),
+      );
       setResultCompanies(result.companies);
       setMatches(result.total);
       setSelectedIds(new Set());
@@ -198,9 +253,18 @@ export function useScreenState() {
     } finally {
       setIsSearching(false);
     }
-  }, [keywords, techStack, industry, companySize, location, region, city, companyLimit]);
+  }, [
+    keywords,
+    techStack,
+    industry,
+    companySize,
+    location,
+    region,
+    city,
+    companyLimit,
+  ]);
 
-  return useMemo(
+  const value = useMemo(
     () => ({
       activeNavId,
       setActiveNavId,
@@ -230,6 +294,8 @@ export function useScreenState() {
       isSearching,
       searchError,
       selectedIds,
+      importedCompanies,
+      importToCampaign,
       toggleRow,
       toggleAll,
       clearSelectedResults,
@@ -248,20 +314,39 @@ export function useScreenState() {
       handleRegionChange,
       regionOptions,
       city,
+      setCity,
       cityOptions,
       companyLimit,
       chips,
+      removeChip,
       resultCompanies,
       matches,
       isSearching,
       searchError,
       selectedIds,
+      importedCompanies,
+      importToCampaign,
       toggleRow,
       toggleAll,
       clearSelectedResults,
-      removeChip,
       reset,
       search,
     ],
   );
+
+  return (
+    <OutreachContext.Provider value={value}>
+      {children}
+    </OutreachContext.Provider>
+  );
+}
+
+export function useOutreachContext() {
+  const context = useContext(OutreachContext);
+  if (context === undefined) {
+    throw new Error(
+      'useOutreachContext must be used within an OutreachProvider',
+    );
+  }
+  return context;
 }

@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
+import { useAction } from 'convex/react';
+import { makeFunctionReference } from 'convex/server';
 import { Icon } from '../outreach/Common';
-import { campaignCompanies } from './data';
+import { useOutreachContext } from '../outreach/OutreachContext';
 import type {
+  CampaignCompany,
   CampaignHeaderProps,
   CampaignRowProps,
   CampaignScoreProps,
@@ -9,7 +12,52 @@ import type {
   EntityDrawerProps,
 } from './types';
 
-export function CampaignHeader({ query, onQueryChange }: CampaignHeaderProps) {
+const generateArtifactsAction = makeFunctionReference<
+  'action',
+  {
+    companies: {
+      id: string;
+      name: string;
+      industry: string;
+      techStack: string[];
+    }[];
+  },
+  void
+>('artifacts:generateForCompanies');
+
+export function GenerateButton({
+  onClick,
+  isLoading = false,
+  disabled = false,
+}: {
+  onClick?: () => void;
+  isLoading?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      className="generateButton"
+      type="button"
+      onClick={onClick}
+      disabled={disabled || isLoading}
+    >
+      <Icon name={isLoading ? 'sync' : 'magic_button'} size={16} />
+      {isLoading ? 'Generating...' : 'Generate templates & Resumes'}
+    </button>
+  );
+}
+
+export function CampaignHeader({
+  query,
+  onQueryChange,
+  onGenerate,
+  isGenerating,
+  selectedCount,
+}: CampaignHeaderProps & {
+  onGenerate: () => void;
+  isGenerating: boolean;
+  selectedCount: number;
+}) {
   return (
     <section className="campaignHeader">
       <div className="campaignHeaderText">
@@ -34,6 +82,11 @@ export function CampaignHeader({ query, onQueryChange }: CampaignHeaderProps) {
               <Icon name="filter_list" size={16} />
               Filter
             </button>
+            <GenerateButton
+              onClick={onGenerate}
+              isLoading={isGenerating}
+              disabled={selectedCount === 0}
+            />
           </div>
         </div>
       </div>
@@ -265,7 +318,12 @@ function RecentActivity() {
   );
 }
 
-export function EntityDrawer({ company, onClose }: EntityDrawerProps) {
+export function EntityDrawer({
+  company,
+  onClose,
+  onGenerate,
+  isGenerating,
+}: EntityDrawerProps & { onGenerate: () => void; isGenerating: boolean }) {
   return (
     <aside className="entityDrawer" aria-label="Entity details">
       <div className="drawerHeader">
@@ -292,10 +350,7 @@ export function EntityDrawer({ company, onClose }: EntityDrawerProps) {
         <RecentActivity />
       </div>
       <div className="drawerFooter">
-        <button className="drawerPrimary" type="button">
-          <Icon name="magic_button" size={16} />
-          Generate templates & Resumes
-        </button>
+        <GenerateButton onClick={onGenerate} isLoading={isGenerating} />
         <div className="drawerSecondaryActions">
           <button type="button">
             <Icon name="skip_next" size={16} />
@@ -314,22 +369,32 @@ export function EntityDrawer({ company, onClose }: EntityDrawerProps) {
 export function CampaignsScreen() {
   const [query, setQuery] = useState('');
   const [activeId, setActiveId] = useState<string | undefined>(undefined);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+
+  const { importedCompanies } = useOutreachContext();
+  const generateArtifacts = useAction(generateArtifactsAction);
+
+  const companies: CampaignCompany[] = useMemo(
     () =>
-      new Set(
-        campaignCompanies
-          .filter((company) => company.selected === true)
-          .map((company) => company.id),
-      ),
-  );
-  const companies = useMemo(
-    () =>
-      campaignCompanies.map((company) => ({
-        ...company,
+      importedCompanies.map((company) => ({
+        id: company.id,
+        name: company.name,
+        industry: company.industry,
+        lastContact: 'Never',
+        score: company.confidence,
         selected: selectedIds.has(company.id),
       })),
-    [selectedIds],
+    [importedCompanies, selectedIds],
   );
+
+  const filteredCompanies = useMemo(() => {
+    if (query.trim() === '') return companies;
+    const lowerQuery = query.toLowerCase();
+    return companies.filter((c) => c.name.toLowerCase().includes(lowerQuery));
+  }, [companies, query]);
+
   const activeCompany = useMemo(
     () =>
       activeId === undefined
@@ -337,6 +402,64 @@ export function CampaignsScreen() {
         : companies.find((company) => company.id === activeId),
     [activeId, companies],
   );
+
+  const handleGenerate = async () => {
+    const selected = importedCompanies.filter((c) => selectedIds.has(c.id));
+    if (selected.length === 0) {
+      alert('Please select at least one company to generate artifacts.');
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenError(null);
+
+    try {
+      await generateArtifacts({
+        companies: selected.map((c) => ({
+          id: c.id,
+          name: c.name,
+          industry: c.industry,
+          techStack: c.techStack,
+        })),
+      });
+      alert('Successfully triggered generation for selected companies!');
+    } catch (error) {
+      console.error('Generation failed:', error);
+      const message =
+        error instanceof Error ? error.message : 'Unknown generation error';
+      setGenError(message);
+      alert(`Generation failed: ${message}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateSingle = async (companyId: string) => {
+    const company = importedCompanies.find((c) => c.id === companyId);
+    if (!company) return;
+
+    setIsGenerating(true);
+    setGenError(null);
+
+    try {
+      await generateArtifacts({
+        companies: [
+          {
+            id: company.id,
+            name: company.name,
+            industry: company.industry,
+            techStack: company.techStack,
+          },
+        ],
+      });
+      alert(`Successfully triggered generation for ${company.name}!`);
+    } catch (error) {
+      console.error('Generation failed:', error);
+      setGenError(error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   function toggleSelected(id: string) {
     setSelectedIds((current) => {
@@ -352,20 +475,26 @@ export function CampaignsScreen() {
 
   function toggleAll() {
     setSelectedIds((current) => {
-      if (current.size === campaignCompanies.length) {
+      if (current.size === filteredCompanies.length) {
         return new Set();
       }
-      return new Set(campaignCompanies.map((company) => company.id));
+      return new Set(filteredCompanies.map((company) => company.id));
     });
   }
 
   return (
     <div className="campaignScreen">
-      <CampaignHeader query={query} onQueryChange={setQuery} />
+      <CampaignHeader
+        query={query}
+        onQueryChange={setQuery}
+        onGenerate={handleGenerate}
+        isGenerating={isGenerating}
+        selectedCount={selectedIds.size}
+      />
       <div className="campaignCanvas">
         <div className="campaignTableWrap">
           <CampaignTable
-            companies={companies}
+            companies={filteredCompanies}
             activeId={activeId ?? ''}
             onSelect={setActiveId}
             onToggleSelected={toggleSelected}
@@ -377,8 +506,11 @@ export function CampaignsScreen() {
         <EntityDrawer
           company={activeCompany}
           onClose={() => setActiveId(undefined)}
+          onGenerate={() => handleGenerateSingle(activeCompany.id)}
+          isGenerating={isGenerating}
         />
       ) : null}
+      {genError && <div className="campaignGenError">Error: {genError}</div>}
     </div>
   );
 }

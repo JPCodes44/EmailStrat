@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ConvexProvider, ConvexReactClient } from 'convex/react';
 import './components/campaigns/styles.css';
 import './components/email-table/styles.css';
 import './components/outreach/styles.css';
@@ -13,6 +14,7 @@ import { ScheduleSubmissionScreen } from './components/schedule/ScheduleSubmissi
 import { jobsNavItems } from './components/jobs/data';
 import { Sidebar } from './components/outreach/Sidebar';
 import { Screen } from './components/outreach/Screen';
+import { OutreachProvider } from './components/outreach/OutreachContext';
 
 const companyPageId = 'companies';
 const campaignsPageId = 'campaigns';
@@ -22,44 +24,52 @@ const schedulePageId = 'schedule';
 const jobsPageId = 'jobs';
 const brand = { title: 'Outreach OS', subtitle: 'Enterprise Outreach' };
 
+const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
+
 /** App root — swaps between implemented Outreach OS screens. */
 export function App() {
   const [activePage, setActivePage] = useState(jobsPageId);
-  const page =
-    activePage === companyPageId ? (
-      <Screen />
-    ) : activePage === campaignsPageId ? (
-      <CampaignsScreen />
-    ) : activePage === emailTablePageId ? (
-      <EmailTableScreen />
-    ) : activePage === draftsPageId ? (
-      <DraftReviewScreen onContinue={() => setActivePage(schedulePageId)} />
-    ) : activePage === schedulePageId ? (
-      <ScheduleSubmissionScreen onBack={() => setActivePage(draftsPageId)} />
-    ) : (
-      <GenerationJobsScreen />
-    );
 
   return (
-    <div className="appShell">
-      <Sidebar
-        brand={brand}
-        items={jobsNavItems}
-        activeId={activePage}
-        onSelect={setActivePage}
-      />
-      <main className="appMain">
-        <TopBar />
-        <div
-          className={`appPage ${
-            activePage === campaignsPageId || activePage === emailTablePageId
-              ? 'appPageFlush'
-              : ''
-          }`}
-        >
-          {page}
+    <ConvexProvider client={convex}>
+      <OutreachProvider>
+        <div className="appShell">
+          <Sidebar
+            brand={brand}
+            items={jobsNavItems}
+            activeId={activePage}
+            onSelect={setActivePage}
+          />
+          <main className="appMain">
+            <TopBar />
+            <div
+              className={`appPage ${
+                activePage === campaignsPageId || activePage === emailTablePageId
+                  ? 'appPageFlush'
+                  : ''
+              }`}
+            >
+              {activePage === companyPageId ? (
+                <Screen />
+              ) : activePage === campaignsPageId ? (
+                <CampaignsScreen />
+              ) : activePage === emailTablePageId ? (
+                <EmailTableScreen />
+              ) : activePage === draftsPageId ? (
+                <DraftReviewScreen
+                  onContinue={() => setActivePage(schedulePageId)}
+                />
+              ) : activePage === schedulePageId ? (
+                <ScheduleSubmissionScreen
+                  onBack={() => setActivePage(draftsPageId)}
+                />
+              ) : (
+                <GenerationJobsScreen />
+              )}
+            </div>
+          </main>
         </div>
-      </main>
-    </div>
+      </OutreachProvider>
+    </ConvexProvider>
   );
 }

@@ -1,7 +1,7 @@
 import { Button } from './Common';
 import { FilterConsole } from './Filters';
 import { Results } from './Results';
-import { useScreenState } from './useScreenState';
+import { useOutreachContext } from './OutreachContext';
 import type { PageHeaderProps } from './types';
 
 /** Page title, supporting copy, and the Recent Searches action. */
@@ -21,7 +21,7 @@ export function PageHeader({ title, subtitle }: PageHeaderProps) {
 
 /** Top-level "Generate Target List" screen wiring state to presentation. */
 export function Screen() {
-  const s = useScreenState();
+  const s = useOutreachContext();
   return (
     <>
       <PageHeader
@@ -64,7 +64,7 @@ export function Screen() {
         onToggleAll={s.toggleAll}
         onClearSelected={s.clearSelectedResults}
         onExport={() => undefined}
-        onImport={() => undefined}
+        onImport={s.importToCampaign}
       />
     </>
   );

@@ -3,3 +3,5 @@ _generated/
 
 # Convex local deployment env
 .env.local
+
+.env
