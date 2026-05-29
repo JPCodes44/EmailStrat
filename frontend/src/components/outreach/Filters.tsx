@@ -1,9 +1,10 @@
-import { Button, Icon } from './Common';
-import { companySizeOptions, geographyOptions, industryOptions } from './data';
+import { Button, Icon, InputBox } from './Common';
+import { companySizeOptions, industryOptions } from './data';
 import type {
   ActiveFiltersProps,
   FilterActionsProps,
   FilterChipProps,
+  FilterCompanyLimitInputProps,
   FilterConsoleProps,
   FilterFieldProps,
   FilterSearchProps,
@@ -47,12 +48,11 @@ export function FilterSearch({ value, onChange }: FilterSearchProps) {
           <span className="outreachSearchIcon">
             <Icon name="search" size={20} />
           </span>
-          <input
-            type="text"
-            className="outreachInput outreachSearchInput"
+          <InputBox
+            className="outreachSearchInput"
             placeholder="Search by company name, description, or domain..."
             value={value}
-            onChange={(event) => onChange(event.target.value)}
+            onChange={onChange}
           />
         </span>
       </FilterField>
@@ -66,6 +66,7 @@ export function FilterSelect({
   options,
   value,
   onChange,
+  onBlur,
 }: FilterSelectProps) {
   return (
     <FilterField label={label}>
@@ -74,12 +75,17 @@ export function FilterSelect({
         value={value}
         aria-label={label}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
       >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
+        {options.map((option) => {
+          const optValue = typeof option === 'string' ? option : option.value;
+          const optLabel = typeof option === 'string' ? option : option.label;
+          return (
+            <option key={optValue} value={optValue}>
+              {optLabel}
+            </option>
+          );
+        })}
       </select>
     </FilterField>
   );
@@ -90,16 +96,36 @@ export function FilterTechInput({ value, onChange }: FilterTechInputProps) {
   return (
     <FilterField label="Tech Stack">
       <span className="outreachInputWrap">
-        <input
-          type="text"
-          className="outreachInput outreachTechInput"
+        <InputBox
+          className="outreachTechInput"
           placeholder="e.g., React, AWS"
           value={value}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={onChange}
         />
         <span className="outreachTechIcon">
           <Icon name="code" size={20} />
         </span>
+      </span>
+    </FilterField>
+  );
+}
+
+/** Numeric target-count input for company research. */
+export function FilterCompanyLimitInput({
+  value,
+  onChange,
+}: FilterCompanyLimitInputProps) {
+  return (
+    <FilterField label="Companies">
+      <span className="outreachInputWrap">
+        <InputBox
+          type="number"
+          placeholder="50"
+          min={1}
+          max={100}
+          value={value}
+          onChange={onChange}
+        />
       </span>
     </FilterField>
   );
@@ -124,14 +150,23 @@ export function ActiveFilters({ chips, onRemove }: ActiveFiltersProps) {
 }
 
 /** Reset and Search actions for the filter console. */
-export function FilterActions({ onReset, onSearch }: FilterActionsProps) {
+export function FilterActions({
+  onReset,
+  onSearch,
+  isSearching = false,
+}: FilterActionsProps) {
   return (
     <div className="outreachFilterActions">
-      <Button variant="secondary" onClick={onReset}>
+      <Button variant="secondary" disabled={isSearching} onClick={onReset}>
         Reset Filters
       </Button>
-      <Button variant="primary" iconName="search" onClick={onSearch}>
-        Search Companies
+      <Button
+        variant="primary"
+        iconName="search"
+        disabled={isSearching}
+        onClick={onSearch}
+      >
+        {isSearching ? 'Searching...' : 'Search Companies'}
       </Button>
     </div>
   );
@@ -159,19 +194,39 @@ export function FilterConsole(props: FilterConsoleProps) {
           onChange={props.onCompanySizeChange}
         />
         <FilterSelect
-          label="Geography"
-          options={geographyOptions}
-          value={props.geography}
-          onChange={props.onGeographyChange}
+          label="Location"
+          options={props.locationOptions}
+          value={props.location}
+          onChange={props.onLocationChange}
+        />
+        <FilterSelect
+          label="State/Province"
+          options={props.regionOptions}
+          value={props.region}
+          onChange={props.onRegionChange}
+        />
+        <FilterSelect
+          label="City"
+          options={props.cityOptions}
+          value={props.city}
+          onChange={props.onCityChange}
         />
         <FilterTechInput
           value={props.techStack}
           onChange={props.onTechStackChange}
         />
+        <FilterCompanyLimitInput
+          value={props.companyLimit}
+          onChange={props.onCompanyLimitChange}
+        />
       </div>
       <div className="outreachFilterFooter">
         <ActiveFilters chips={props.chips} onRemove={props.onRemoveChip} />
-        <FilterActions onReset={props.onReset} onSearch={props.onSearch} />
+        <FilterActions
+          onReset={props.onReset}
+          onSearch={props.onSearch}
+          isSearching={props.isSearching}
+        />
       </div>
     </section>
   );

@@ -5,6 +5,7 @@ import {
   ActiveFilters,
   FilterActions,
   FilterChip,
+  FilterCompanyLimitInput,
   FilterConsole,
   FilterField,
   FilterSearch,
@@ -77,6 +78,16 @@ describe('FilterTechInput', () => {
   });
 });
 
+describe('FilterCompanyLimitInput', () => {
+  it('renders under a Companies label and reports numeric input', async () => {
+    const onChange = vi.fn();
+    render(<FilterCompanyLimitInput value="" onChange={onChange} />);
+    expect(screen.getByText('Companies')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('spinbutton'), '2');
+    expect(onChange).toHaveBeenCalledWith('2');
+  });
+});
+
 describe('ActiveFilters', () => {
   const chips = [
     { id: 'size', label: 'Size: 51-200' },
@@ -122,6 +133,8 @@ function makeConsoleProps(): FilterConsoleProps {
     onCompanySizeChange: vi.fn(),
     geography: 'global',
     onGeographyChange: vi.fn(),
+    companyLimit: '50',
+    onCompanyLimitChange: vi.fn(),
     chips: [{ id: 'tech', label: 'Tech: React' }],
     onRemoveChip: vi.fn(),
     onReset: vi.fn(),
@@ -137,6 +150,7 @@ describe('FilterConsole', () => {
     expect(screen.getByLabelText('Company Size')).toBeInTheDocument();
     expect(screen.getByLabelText('Geography')).toBeInTheDocument();
     expect(screen.getByText('Tech Stack')).toBeInTheDocument();
+    expect(screen.getByText('Companies')).toBeInTheDocument();
     expect(screen.getByText('Tech: React')).toBeInTheDocument();
   });
 });

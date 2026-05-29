@@ -82,9 +82,33 @@ describe('ResultsRow', () => {
 
 describe('ResultsHeader', () => {
   it('renders the title and formatted match count', () => {
-    render(<ResultsHeader matches={1240} />);
+    render(
+      <ResultsHeader
+        matches={1240}
+        selectedCount={0}
+        onClearSelected={vi.fn()}
+      />,
+    );
     expect(screen.getByText('Discovery Results')).toBeInTheDocument();
     expect(screen.getByText('1,240 matches')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Clear Results/ }),
+    ).toBeDisabled();
+  });
+
+  it('fires the clear action when rows are selected', async () => {
+    const onClearSelected = vi.fn();
+    render(
+      <ResultsHeader
+        matches={1240}
+        selectedCount={2}
+        onClearSelected={onClearSelected}
+      />,
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: /Clear Results/ }),
+    );
+    expect(onClearSelected).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -150,6 +174,7 @@ describe('Results', () => {
         selectedIds={new Set(['acme', 'nexus'])}
         onToggleRow={vi.fn()}
         onToggleAll={vi.fn()}
+        onClearSelected={vi.fn()}
         onExport={vi.fn()}
         onImport={vi.fn()}
       />,

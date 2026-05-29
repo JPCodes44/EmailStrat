@@ -2,6 +2,7 @@ import type {
   ButtonProps,
   ButtonVariant,
   IconProps,
+  InputBoxProps,
   SplitButtonProps,
 } from './types';
 
@@ -34,17 +35,42 @@ export function Button({
   iconName,
   size = 'md',
   type = 'button',
+  disabled = false,
   onClick,
 }: ButtonProps) {
   return (
     <button
       type={type}
       className={`outreachButton ${variantClass[variant]} outreachButton-${size}`}
+      disabled={disabled}
       onClick={onClick}
     >
       {iconName !== undefined ? <Icon name={iconName} size={18} /> : null}
       {children}
     </button>
+  );
+}
+
+/** Reusable input styled for Outreach OS forms. */
+export function InputBox({
+  value,
+  onChange,
+  type = 'text',
+  placeholder,
+  className = '',
+  min,
+  max,
+}: InputBoxProps) {
+  return (
+    <input
+      type={type}
+      className={`outreachInput ${className}`}
+      placeholder={placeholder}
+      min={min}
+      max={max}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
   );
 }
 

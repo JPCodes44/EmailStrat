@@ -59,7 +59,18 @@ export interface ButtonProps {
   iconName?: string;
   size?: ButtonSize;
   type?: 'button' | 'submit';
+  disabled?: boolean;
   onClick?: () => void;
+}
+
+export interface InputBoxProps {
+  value: string;
+  onChange: (value: string) => void;
+  type?: 'text' | 'number';
+  placeholder?: string;
+  className?: string;
+  min?: number;
+  max?: number;
 }
 
 export interface SplitButtonProps {
@@ -134,12 +145,18 @@ export interface FilterSearchProps {
 
 export interface FilterSelectProps {
   label: string;
-  options: SelectOption[];
+  options: (SelectOption | string)[];
+  value: string;
+  onChange: (value: string) => void;
+  onBlur?: () => void;
+}
+
+export interface FilterTechInputProps {
   value: string;
   onChange: (value: string) => void;
 }
 
-export interface FilterTechInputProps {
+export interface FilterCompanyLimitInputProps {
   value: string;
   onChange: (value: string) => void;
 }
@@ -152,6 +169,7 @@ export interface ActiveFiltersProps {
 export interface FilterActionsProps {
   onReset: () => void;
   onSearch: () => void;
+  isSearching?: boolean;
 }
 
 export interface FilterConsoleProps {
@@ -163,18 +181,30 @@ export interface FilterConsoleProps {
   onIndustryChange: (value: string) => void;
   companySize: string;
   onCompanySizeChange: (value: string) => void;
-  geography: string;
-  onGeographyChange: (value: string) => void;
+  location: string;
+  onLocationChange: (value: string) => void;
+  locationOptions: (SelectOption | string)[];
+  region: string;
+  onRegionChange: (value: string) => void;
+  regionOptions: (SelectOption | string)[];
+  city: string;
+  onCityChange: (value: string) => void;
+  cityOptions: (SelectOption | string)[];
+  companyLimit: string;
+  onCompanyLimitChange: (value: string) => void;
   chips: FilterChipModel[];
   onRemoveChip: (id: string) => void;
   onReset: () => void;
   onSearch: () => void;
+  isSearching?: boolean;
 }
 
 /* -------------------------------------------------------------- results */
 
 export interface ResultsHeaderProps {
   matches: number;
+  selectedCount: number;
+  onClearSelected: () => void;
 }
 
 export interface CompanyCellProps {
@@ -191,6 +221,8 @@ export interface ResultsTableProps {
   companies: Company[];
   selectedIds: ReadonlySet<string>;
   allSelected: boolean;
+  isLoading?: boolean;
+  error?: string;
   onToggleRow: (id: string) => void;
   onToggleAll: () => void;
 }
@@ -199,8 +231,11 @@ export interface ResultsProps {
   companies: Company[];
   matches: number;
   selectedIds: ReadonlySet<string>;
+  isLoading?: boolean;
+  error?: string;
   onToggleRow: (id: string) => void;
   onToggleAll: () => void;
+  onClearSelected: () => void;
   onExport: () => void;
   onImport: () => void;
 }

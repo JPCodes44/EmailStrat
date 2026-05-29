@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Button, Icon, SplitButton } from './Common';
+import { Button, Icon, InputBox, SplitButton } from './Common';
 
 describe('Icon', () => {
   it('renders the glyph name as content', () => {
@@ -43,6 +43,15 @@ describe('Button', () => {
     );
     await userEvent.click(screen.getByRole('button'));
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('InputBox', () => {
+  it('reports typed input through the reusable form control', async () => {
+    const onChange = vi.fn();
+    render(<InputBox value="" onChange={onChange} placeholder="Count" />);
+    await userEvent.type(screen.getByPlaceholderText('Count'), '5');
+    expect(onChange).toHaveBeenCalledWith('5');
   });
 });
 

@@ -2,7 +2,6 @@ import { Button } from './Common';
 import { FilterConsole } from './Filters';
 import { Results } from './Results';
 import { useScreenState } from './useScreenState';
-import { companies, discoveryMatches } from './data';
 import type { PageHeaderProps } from './types';
 
 /** Page title, supporting copy, and the Recent Searches action. */
@@ -19,8 +18,6 @@ export function PageHeader({ title, subtitle }: PageHeaderProps) {
     </header>
   );
 }
-
-const noop = () => undefined;
 
 /** Top-level "Generate Target List" screen wiring state to presentation. */
 export function Screen() {
@@ -40,21 +37,34 @@ export function Screen() {
         onIndustryChange={s.setIndustry}
         companySize={s.companySize}
         onCompanySizeChange={s.setCompanySize}
-        geography={s.geography}
-        onGeographyChange={s.setGeography}
+        location={s.location}
+        onLocationChange={s.onLocationChange}
+        locationOptions={s.locationOptions}
+        region={s.region}
+        onRegionChange={s.onRegionChange}
+        regionOptions={s.regionOptions}
+        city={s.city}
+        onCityChange={s.onCityChange}
+        cityOptions={s.cityOptions}
+        companyLimit={s.companyLimit}
+        onCompanyLimitChange={s.setCompanyLimit}
         chips={s.chips}
         onRemoveChip={s.removeChip}
         onReset={s.reset}
-        onSearch={noop}
+        onSearch={s.search}
+        isSearching={s.isSearching}
       />
       <Results
-        companies={companies}
-        matches={discoveryMatches}
+        companies={s.resultCompanies}
+        matches={s.matches}
         selectedIds={s.selectedIds}
+        isLoading={s.isSearching}
+        error={s.searchError}
         onToggleRow={s.toggleRow}
         onToggleAll={s.toggleAll}
-        onExport={noop}
-        onImport={noop}
+        onClearSelected={s.clearSelectedResults}
+        onExport={() => undefined}
+        onImport={() => undefined}
       />
     </>
   );

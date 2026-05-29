@@ -45,6 +45,23 @@ This prompts an interactive login, creates a deployment, and generates
 deployment. Because `_generated/` is absent until then, the backend is excluded
 from the aggregate `build`/`test`/`typecheck` scripts below.
 
+### Company research env
+
+The company research action calls Gemini with Google Search grounding from
+Convex. Set the Gemini key on the Convex deployment, not in frontend env:
+
+```bash
+cd backend
+bunx convex env set GEMINI_API_KEY "..."
+bunx convex env set GEMINI_RESEARCH_MODEL "gemini-2.5-flash" # optional override
+```
+
+The Vite app also needs the Convex deployment URL in `frontend/.env.local`:
+
+```bash
+VITE_CONVEX_URL=https://your-deployment.convex.cloud
+```
+
 ## Quality checks
 
 ```bash

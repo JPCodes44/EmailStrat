@@ -97,31 +97,24 @@ export function ResultsRow({ company, selected, onToggle }: ResultsRowProps) {
   );
 }
 
-/** Results card header: title, match count, and view controls. */
-export function ResultsHeader({ matches }: ResultsHeaderProps) {
+/** Results card header: title, match count, and clear-selected action. */
+export function ResultsHeader({
+  selectedCount,
+  onClearSelected,
+}: Omit<ResultsHeaderProps, 'matches'>) {
   return (
     <div className="outreachResultsHeader">
-      <h3 className="outreachResultsTitle">
-        Discovery Results
-        <span className="outreachCountPill">
-          {matches.toLocaleString()} matches
-        </span>
-      </h3>
+      <h3 className="outreachResultsTitle">Discovery Results</h3>
       <div className="outreachResultsTools">
-        <button
-          type="button"
-          className="outreachIconBtn"
-          aria-label="Filter columns"
+        <Button
+          variant="secondary"
+          size="sm"
+          iconName="delete"
+          disabled={selectedCount === 0}
+          onClick={onClearSelected}
         >
-          <Icon name="filter_list" size={20} />
-        </button>
-        <button
-          type="button"
-          className="outreachIconBtn"
-          aria-label="Choose columns"
-        >
-          <Icon name="view_column" size={20} />
-        </button>
+          Clear Results
+        </Button>
       </div>
     </div>
   );
@@ -132,6 +125,8 @@ export function ResultsTable({
   companies,
   selectedIds,
   allSelected,
+  isLoading = false,
+  error,
   onToggleRow,
   onToggleAll,
 }: ResultsTableProps) {
@@ -173,14 +168,28 @@ export function ResultsTable({
           </div>
         </div>
         <div role="rowgroup" className="outreachTableBody">
-          {companies.map((company) => (
-            <ResultsRow
-              key={company.id}
-              company={company}
-              selected={selectedIds.has(company.id)}
-              onToggle={onToggleRow}
-            />
-          ))}
+          {error !== undefined ? (
+            <div className="outreachResultsState" role="status">
+              {error}
+            </div>
+          ) : isLoading ? (
+            <div className="outreachResultsState" role="status">
+              Searching companies...
+            </div>
+          ) : companies.length === 0 ? (
+            <div className="outreachResultsState" role="status">
+              No companies found
+            </div>
+          ) : (
+            companies.map((company) => (
+              <ResultsRow
+                key={company.id}
+                company={company}
+                selected={selectedIds.has(company.id)}
+                onToggle={onToggleRow}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -225,8 +234,11 @@ export function Results({
   companies,
   matches,
   selectedIds,
+  isLoading = false,
+  error,
   onToggleRow,
   onToggleAll,
+  onClearSelected,
   onExport,
   onImport,
 }: ResultsProps) {
@@ -234,11 +246,16 @@ export function Results({
     companies.length > 0 && companies.every((c) => selectedIds.has(c.id));
   return (
     <section className="outreachResults">
-      <ResultsHeader matches={matches} />
+      <ResultsHeader
+        selectedCount={selectedIds.size}
+        onClearSelected={onClearSelected}
+      />
       <ResultsTable
         companies={companies}
         selectedIds={selectedIds}
         allSelected={allSelected}
+        isLoading={isLoading}
+        error={error}
         onToggleRow={onToggleRow}
         onToggleAll={onToggleAll}
       />
