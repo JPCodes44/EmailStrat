@@ -131,8 +131,15 @@ function makeConsoleProps(): FilterConsoleProps {
     onIndustryChange: vi.fn(),
     companySize: 'any',
     onCompanySizeChange: vi.fn(),
-    geography: 'global',
-    onGeographyChange: vi.fn(),
+    location: 'Global',
+    onLocationChange: vi.fn(),
+    locationOptions: ['Global'],
+    region: 'all',
+    onRegionChange: vi.fn(),
+    regionOptions: ['All Regions'],
+    city: 'all',
+    onCityChange: vi.fn(),
+    cityOptions: ['All Cities'],
     companyLimit: '50',
     onCompanyLimitChange: vi.fn(),
     chips: [{ id: 'tech', label: 'Tech: React' }],
@@ -148,7 +155,7 @@ describe('FilterConsole', () => {
     expect(screen.getByText('Keywords')).toBeInTheDocument();
     expect(screen.getByLabelText('Industry')).toBeInTheDocument();
     expect(screen.getByLabelText('Company Size')).toBeInTheDocument();
-    expect(screen.getByLabelText('Geography')).toBeInTheDocument();
+    expect(screen.getByLabelText('Location')).toBeInTheDocument();
     expect(screen.getByText('Tech Stack')).toBeInTheDocument();
     expect(screen.getByText('Companies')).toBeInTheDocument();
     expect(screen.getByText('Tech: React')).toBeInTheDocument();

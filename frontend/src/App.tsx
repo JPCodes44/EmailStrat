@@ -6,6 +6,7 @@ import './components/outreach/styles.css';
 import './components/jobs/styles.css';
 import './components/draft-review/styles.css';
 import './components/schedule/styles.css';
+import './components/modals/styles.css';
 import { CampaignsScreen } from './components/campaigns/Campaigns';
 import { DraftReviewScreen } from './components/draft-review/DraftReview';
 import { EmailTableScreen } from './components/email-table/EmailTable';
@@ -21,14 +22,17 @@ const campaignsPageId = 'campaigns';
 const emailTablePageId = 'email-table';
 const draftsPageId = 'drafts';
 const schedulePageId = 'schedule';
-const jobsPageId = 'jobs';
 const brand = { title: 'Outreach OS', subtitle: 'Enterprise Outreach' };
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
+const convexUrl = import.meta.env.VITE_CONVEX_URL;
+if (!convexUrl) {
+  throw new Error('VITE_CONVEX_URL is not set. Add it to frontend/.env.local.');
+}
+const convex = new ConvexReactClient(convexUrl);
 
 /** App root — swaps between implemented Outreach OS screens. */
 export function App() {
-  const [activePage, setActivePage] = useState(jobsPageId);
+  const [activePage, setActivePage] = useState(companyPageId);
 
   return (
     <ConvexProvider client={convex}>
@@ -44,15 +48,20 @@ export function App() {
             <TopBar />
             <div
               className={`appPage ${
-                activePage === campaignsPageId || activePage === emailTablePageId
+                activePage === campaignsPageId ||
+                activePage === emailTablePageId
                   ? 'appPageFlush'
                   : ''
               }`}
             >
               {activePage === companyPageId ? (
-                <Screen />
+                <Screen
+                  onViewCompanies={() => setActivePage(campaignsPageId)}
+                />
               ) : activePage === campaignsPageId ? (
-                <CampaignsScreen />
+                <CampaignsScreen
+                  onViewDraftReview={() => setActivePage(draftsPageId)}
+                />
               ) : activePage === emailTablePageId ? (
                 <EmailTableScreen />
               ) : activePage === draftsPageId ? (

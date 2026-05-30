@@ -635,6 +635,38 @@
   background: #eceef0;
 }
 
+/* Reusable status pill — themed by tone (success/danger/neutral). */
+.outreachStatusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font:
+    700 10px/14px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.outreachStatusPill-success {
+  color: #0a5132;
+  background: #cdead7;
+}
+
+.outreachStatusPill-danger {
+  color: #93000a;
+  background: #ffdad6;
+}
+
+.outreachStatusPill-neutral {
+  color: #434655;
+  background: #eceef0;
+}
+
 .outreachBulkFooter {
   padding: 16px;
   background: #f2f4f6;

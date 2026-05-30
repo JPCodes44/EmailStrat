@@ -34,8 +34,29 @@ export default defineSchema({
   artifacts: defineTable({
     companyId: v.string(),
     emailTemplate: v.string(),
+    /** The résumé LaTeX source (kept for re-compiling / debugging). */
     resumeLatex: v.string(),
-    status: v.union(v.literal('pending'), v.literal('completed'), v.literal('failed')),
+    /** Stored PDF compiled from `resumeLatex`; absent if the compile failed. */
+    resumePdfId: v.optional(v.id('_storage')),
+    status: v.union(
+      v.literal('pending'),
+      v.literal('completed'),
+      v.literal('failed'),
+    ),
     createdAt: v.string(),
   }).index('by_companyId', ['companyId']),
+  companies: defineTable({
+    /** The research-supplied id (domain); also used as `artifacts.companyId`. */
+    externalId: v.string(),
+    name: v.string(),
+    domain: v.string(),
+    initial: v.string(),
+    industry: v.string(),
+    location: v.string(),
+    size: v.string(),
+    techStack: v.array(v.string()),
+    confidence: v.number(),
+    confidenceTone: v.union(v.literal('positive'), v.literal('neutral')),
+    createdAt: v.string(),
+  }).index('by_externalId', ['externalId']),
 });

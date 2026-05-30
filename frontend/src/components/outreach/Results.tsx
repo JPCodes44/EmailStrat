@@ -232,7 +232,6 @@ export function BulkFooter({
 /** Discovery results card: header, scrollable table, and bulk footer. */
 export function Results({
   companies,
-  matches,
   selectedIds,
   isLoading = false,
   error,

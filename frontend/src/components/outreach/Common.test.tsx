@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Button, Icon, InputBox, SplitButton } from './Common';
+import { Button, Icon, InputBox, SplitButton, StatusPill } from './Common';
 
 describe('Icon', () => {
   it('renders the glyph name as content', () => {
@@ -13,6 +13,18 @@ describe('Icon', () => {
     const { container } = render(<Icon name="close" />);
     expect(container.querySelector('.outreachIcon')).toHaveAttribute(
       'aria-hidden',
+    );
+  });
+});
+
+describe('StatusPill', () => {
+  it('renders its label and applies the tone theme class', () => {
+    const { container } = render(
+      <StatusPill tone="success">Drafted</StatusPill>,
+    );
+    expect(screen.getByText('Drafted')).toBeInTheDocument();
+    expect(container.querySelector('.outreachStatusPill')).toHaveClass(
+      'outreachStatusPill-success',
     );
   });
 });

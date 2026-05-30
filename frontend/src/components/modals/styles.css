@@ -1,0 +1,498 @@
+/* ----------------------------------------------------------- overlay */
+
+/* Full-viewport blurred backdrop. `backdrop-filter` blurs whatever screen is
+   rendered behind it, so the effect follows wherever the modal is triggered. */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(25, 28, 30, 0.18);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: modalOverlayIn 200ms ease;
+}
+
+.modalDialog {
+  width: 100%;
+  max-width: 440px;
+}
+
+/* ------------------------------------------------------------- card */
+
+.modalCard {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #c3c6d7;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 24px 48px rgba(27, 39, 51, 0.24);
+  animation: modalCardIn 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modalAccent {
+  display: block;
+  height: 5px;
+  width: 100%;
+}
+
+.modalAccent-primary {
+  background: #2563eb;
+}
+
+.modalAccent-tertiary {
+  background: #006242;
+}
+
+.modalAccent-error {
+  background: #ba1a1a;
+}
+
+.modalAccent-amber {
+  background: #f59e0b;
+}
+
+/* Tinted error surface (warning modals): pink card + on-error-container text. */
+.modalCard-surfaceError {
+  background: #ffdad6;
+  border-color: rgba(147, 0, 10, 0.15);
+}
+
+.modalCard-surfaceError .modalTitleSm {
+  color: #93000a;
+}
+
+.modalCard-surfaceError .modalBody {
+  color: rgba(147, 0, 10, 0.85);
+}
+
+.modalCard-surfaceError .modalButton-ghost {
+  color: rgba(147, 0, 10, 0.75);
+}
+
+.modalCard-surfaceError .modalButton-ghost:hover {
+  background: rgba(147, 0, 10, 0.06);
+}
+
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 32px;
+}
+
+.modalTitle {
+  margin: 0 0 12px;
+  font:
+    600 24px/32px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: -0.01em;
+  color: #191c1e;
+}
+
+.modalTitleSm {
+  margin: 0 0 8px;
+  font:
+    600 18px/24px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #191c1e;
+}
+
+/* Simple alert icon (warning/danger/error/info), distinct from the success badge. */
+.modalIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 24px;
+  border-radius: 9999px;
+}
+
+.modalIcon .outreachIcon {
+  font-size: 30px;
+}
+
+.modalIcon-warning {
+  background: rgba(147, 0, 10, 0.1);
+}
+
+.modalIcon-warning .outreachIcon {
+  color: #93000a;
+}
+
+.modalIcon-danger {
+  background: #ffdad6;
+}
+
+.modalIcon-danger .outreachIcon {
+  color: #ba1a1a;
+}
+
+.modalIcon-error {
+  background: #ffdad6;
+}
+
+.modalIcon-error .outreachIcon {
+  color: #93000a;
+}
+
+.modalIcon-info {
+  background: #e6e8ea;
+}
+
+.modalIcon-info .outreachIcon {
+  color: #004ac6;
+}
+
+.modalBody {
+  margin: 0;
+  max-width: 320px;
+  font:
+    400 14px/20px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #434655;
+}
+
+.modalBody strong {
+  font-weight: 700;
+  color: #191c1e;
+}
+
+/* -------------------------------------------------------- icon badge */
+
+.modalIconBadge {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.modalIconRing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 9999px;
+}
+
+.modalIconRing-primary {
+  background: rgba(208, 225, 251, 0.35);
+}
+
+.modalIconRing-tertiary {
+  background: rgba(78, 222, 163, 0.25);
+}
+
+.modalIconCore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+}
+
+.modalIconCore-primary {
+  background: #2563eb;
+}
+
+.modalIconCore-tertiary {
+  background: #6ffbbe;
+}
+
+.modalIconCore .outreachIcon {
+  font-size: 32px;
+}
+
+.modalIconCore-primary .outreachIcon {
+  color: #ffffff;
+}
+
+.modalIconCore-tertiary .outreachIcon {
+  color: #006242;
+}
+
+.modalIconCheck {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background: #6ffbbe;
+  border: 4px solid #ffffff;
+}
+
+.modalIconCheck .outreachIcon {
+  font-size: 18px;
+  color: #002113;
+}
+
+/* ----------------------------------------------------------- actions */
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  margin-top: 32px;
+}
+
+.modalActions-row {
+  flex-direction: row;
+}
+
+.modalActions-column {
+  flex-direction: column;
+}
+
+.modalButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font:
+    700 14px/20px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.modalButton-primary {
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 8px 16px rgba(0, 74, 198, 0.2);
+}
+
+.modalButton-primary:hover {
+  background: #004ac6;
+}
+
+.modalButton-primary:active {
+  transform: scale(0.98);
+}
+
+.modalButton-secondary {
+  border: 1px solid #c3c6d7;
+  background: transparent;
+  color: #434655;
+}
+
+.modalButton-secondary:hover {
+  background: #eceef0;
+}
+
+.modalButton-danger {
+  border: none;
+  background: #ba1a1a;
+  color: #ffffff;
+}
+
+.modalButton-danger:hover {
+  background: #a0151a;
+}
+
+.modalButton-danger:active {
+  transform: scale(0.98);
+}
+
+.modalButton-ghost {
+  border: none;
+  background: transparent;
+  color: #434655;
+  box-shadow: none;
+}
+
+.modalButton-ghost:hover {
+  background: #eceef0;
+}
+
+/* ------------------------------------------------------- quality meter */
+
+.qualityMeter {
+  width: 100%;
+  margin-top: 32px;
+  padding: 16px;
+  border: 1px solid #c3c6d7;
+  border-radius: 8px;
+  background: #eceef0;
+}
+
+.qualityMeterHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.qualityMeterLabel,
+.qualityMeterValue {
+  font:
+    500 12px/16px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: 0.05em;
+}
+
+.qualityMeterLabel {
+  color: #434655;
+}
+
+.qualityMeterValue {
+  color: #006242;
+}
+
+.qualityMeterBar {
+  display: flex;
+  gap: 4px;
+  height: 8px;
+  width: 100%;
+}
+
+.qualityMeterSegment {
+  flex: 1;
+  background: #e0e3e5;
+}
+
+.qualityMeterSegment:first-child {
+  border-radius: 9999px 0 0 9999px;
+}
+
+.qualityMeterSegment:last-child {
+  border-radius: 0 9999px 9999px 0;
+}
+
+.qualityMeterSegmentFilled {
+  background: #4edea3;
+}
+
+/* ------------------------------------------------------- status footer */
+
+.modalStatusFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 32px;
+  border-top: 1px solid #c3c6d7;
+  background: #f2f4f6;
+}
+
+.modalStatusIndicator,
+.modalStatusDetail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font:
+    500 10px/14px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #737686;
+}
+
+.modalStatusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #006242;
+  animation: modalPulse 1.6s ease-in-out infinite;
+}
+
+/* --------------------------------------------------------- code footer */
+
+.modalCodeFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  border-top: 1px solid #c3c6d7;
+  background: #f2f4f6;
+}
+
+.modalCodeText {
+  font:
+    400 12px/16px 'JetBrains Mono',
+    ui-monospace,
+    monospace;
+  color: #737686;
+}
+
+.modalCodeSupport {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font:
+    500 12px/16px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: 0.05em;
+  color: #737686;
+}
+
+.modalCodeSupport .outreachIcon {
+  font-size: 14px;
+}
+
+/* ------------------------------------------------------------ motion */
+
+@keyframes modalOverlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modalPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modalOverlay,
+  .modalCard,
+  .modalStatusDot {
+    animation: none;
+  }
+}

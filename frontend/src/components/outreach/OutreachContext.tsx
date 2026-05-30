@@ -6,6 +6,8 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { useMutation } from 'convex/react';
+import { makeFunctionReference } from 'convex/server';
 import {
   companySizeOptions,
   industryOptions,
@@ -18,6 +20,33 @@ import {
   researchCompanies,
 } from './companyResearchApi';
 import type { Company, FilterChipModel, SelectOption } from './types';
+
+/** Persisted shape for an imported company (mirrors the backend validator). */
+interface ImportCompanyInput {
+  externalId: string;
+  name: string;
+  domain: string;
+  initial: string;
+  industry: string;
+  location: string;
+  size: string;
+  techStack: string[];
+  confidence: number;
+  confidenceTone: Company['confidenceTone'];
+}
+
+const importCompaniesMutation = makeFunctionReference<
+  'mutation',
+  { companies: ImportCompanyInput[] },
+  { inserted: number }
+>('companies:importCompanies');
+
+/** Which import-result modal to show, if any. */
+export type ImportModalState =
+  | { kind: 'success'; count: number }
+  | { kind: 'warning'; count: number }
+  | { kind: 'empty' }
+  | null;
 
 interface OutreachContextValue {
   activeNavId: string;
@@ -48,8 +77,10 @@ interface OutreachContextValue {
   isSearching: boolean;
   searchError: string | undefined;
   selectedIds: Set<string>;
-  importedCompanies: Company[];
   importToCampaign: () => void;
+  /** Which import-result modal to show (success / warning / empty), if any. */
+  importModal: ImportModalState;
+  dismissImportModal: () => void;
   toggleRow: (id: string) => void;
   toggleAll: () => void;
   clearSelectedResults: () => void;
@@ -77,7 +108,10 @@ export function OutreachProvider({ children }: { children: ReactNode }) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | undefined>();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [importedCompanies, setImportedCompanies] = useState<Company[]>([]);
+  const [importModal, setImportModal] = useState<ImportModalState>(null);
+  const importCompanies = useMutation(importCompaniesMutation);
+
+  const dismissImportModal = useCallback(() => setImportModal(null), []);
 
   const toggleRow = useCallback((id: string) => {
     setSelectedIds((current) => {
@@ -107,29 +141,37 @@ export function OutreachProvider({ children }: { children: ReactNode }) {
     setSelectedIds(new Set());
   }, [selectedIds]);
 
-  const importToCampaign = useCallback(() => {
+  const importToCampaign = useCallback(async () => {
     const selected = resultCompanies.filter((c) => selectedIds.has(c.id));
     if (selected.length === 0) {
-      alert('Please select at least one company to import.');
+      setImportModal({ kind: 'empty' });
       return;
     }
 
-    // Check for duplicates before updating state
-    setImportedCompanies((prev) => {
-      const existingIds = new Set(prev.map((c) => c.id));
-      const uniqueNew = selected.filter((c) => !existingIds.has(c.id));
-
-      if (uniqueNew.length === 0) {
-        return prev;
-      }
-
-      return [...prev, ...uniqueNew];
+    // Persist to the pipeline; the mutation upserts (idempotent by externalId)
+    // and reports how many were actually new.
+    const { inserted } = await importCompanies({
+      companies: selected.map((c) => ({
+        externalId: c.id,
+        name: c.name,
+        domain: c.domain,
+        initial: c.initial,
+        industry: c.industry,
+        location: c.location,
+        size: c.size,
+        techStack: c.techStack,
+        confidence: c.confidence,
+        confidenceTone: c.confidenceTone,
+      })),
     });
 
-    // Alert outside the setter
-    alert(`Successfully processed import for ${selected.length} companies!`);
+    setImportModal(
+      inserted === 0
+        ? { kind: 'warning', count: selected.length }
+        : { kind: 'success', count: inserted },
+    );
     clearSelectedResults();
-  }, [resultCompanies, selectedIds, clearSelectedResults]);
+  }, [resultCompanies, selectedIds, clearSelectedResults, importCompanies]);
 
   const removeChip = useCallback((id: string) => {
     setChips((current) => current.filter((chip) => chip.id !== id));
@@ -294,8 +336,9 @@ export function OutreachProvider({ children }: { children: ReactNode }) {
       isSearching,
       searchError,
       selectedIds,
-      importedCompanies,
       importToCampaign,
+      importModal,
+      dismissImportModal,
       toggleRow,
       toggleAll,
       clearSelectedResults,
@@ -324,8 +367,9 @@ export function OutreachProvider({ children }: { children: ReactNode }) {
       isSearching,
       searchError,
       selectedIds,
-      importedCompanies,
       importToCampaign,
+      importModal,
+      dismissImportModal,
       toggleRow,
       toggleAll,
       clearSelectedResults,

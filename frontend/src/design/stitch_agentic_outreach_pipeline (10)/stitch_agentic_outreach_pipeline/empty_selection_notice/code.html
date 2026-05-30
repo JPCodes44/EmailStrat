@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Empty Selection Notice - Outreach OS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-tint": "#0053db",
+                    "on-primary": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "on-surface": "#191c1e",
+                    "primary-container": "#2563eb",
+                    "on-error": "#ffffff",
+                    "outline": "#737686",
+                    "on-background": "#191c1e",
+                    "on-tertiary": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "surface-container-low": "#f2f4f6",
+                    "on-tertiary-fixed": "#002113",
+                    "secondary": "#505f76",
+                    "surface-dim": "#d8dadc",
+                    "outline-variant": "#c3c6d7",
+                    "primary-fixed": "#dbe1ff",
+                    "on-primary-fixed": "#00174b",
+                    "secondary-fixed-dim": "#b7c8e1",
+                    "on-surface-variant": "#434655",
+                    "surface-bright": "#f7f9fb",
+                    "primary": "#004ac6",
+                    "secondary-fixed": "#d3e4fe",
+                    "error": "#ba1a1a",
+                    "surface-variant": "#e0e3e5",
+                    "background": "#f7f9fb",
+                    "inverse-primary": "#b4c5ff",
+                    "surface": "#f7f9fb",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "inverse-surface": "#2d3133",
+                    "inverse-on-surface": "#eff1f3",
+                    "surface-container-high": "#e6e8ea",
+                    "on-primary-container": "#eeefff",
+                    "tertiary-fixed": "#6ffbbe",
+                    "surface-container-highest": "#e0e3e5",
+                    "surface-container": "#eceef0",
+                    "on-secondary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed-variant": "#38485d",
+                    "on-secondary-container": "#54647a",
+                    "secondary-container": "#d0e1fb",
+                    "on-secondary-fixed": "#0b1c30",
+                    "on-tertiary-container": "#bdffdb",
+                    "tertiary-container": "#007d55",
+                    "on-tertiary-fixed-variant": "#005236",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "tertiary-fixed-dim": "#4edea3",
+                    "tertiary": "#006242"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "inset-squish": "8px 12px",
+                    "gutter": "16px",
+                    "stack-md": "16px",
+                    "unit": "4px",
+                    "stack-sm": "8px",
+                    "inset-equal": "12px",
+                    "container-margin": "24px"
+            },
+            "fontFamily": {
+                    "headline-sm": ["Inter"],
+                    "code-sm": ["jetbrainsMono"],
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .modal-blur-bg {
+            backdrop-filter: blur(8px);
+            background-color: rgba(25, 28, 30, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-background font-body-md text-on-background min-h-screen">
+<!-- Mock Background Content to demonstrate blur effect -->
+<main class="w-full min-h-screen flex">
+<!-- SideNavBar Simulation -->
+<aside class="hidden md:flex flex-col gap-unit p-4 h-screen w-[240px] sticky top-0 bg-surface border-r border-outline-variant">
+<div class="mb-8">
+<h1 class="font-headline-sm text-headline-sm font-extrabold tracking-tight text-on-surface">Outreach OS</h1>
+<p class="font-label-md text-label-md text-on-surface-variant">Enterprise Outreach</p>
+</div>
+<nav class="flex flex-col gap-1">
+<div class="flex items-center gap-3 px-3 py-2 bg-secondary-container text-on-secondary-container rounded-lg font-bold">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-all">
+<span class="material-symbols-outlined">business</span>
+<span class="font-label-md text-label-md">Companies</span>
+</div>
+</nav>
+</aside>
+<!-- Content Area Simulation -->
+<section class="flex-1 p-container-margin">
+<header class="flex justify-between items-center mb-8">
+<h2 class="font-headline-md text-headline-md text-on-surface">Company Directory</h2>
+<div class="flex gap-4">
+<div class="h-10 w-64 bg-surface-container rounded border border-outline-variant"></div>
+<div class="h-10 w-32 bg-primary rounded"></div>
+</div>
+</header>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<div class="h-40 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm"></div>
+<div class="h-40 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm"></div>
+<div class="h-40 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm"></div>
+</div>
+<div class="mt-gutter overflow-hidden border border-outline-variant rounded-xl bg-surface-container-lowest shadow-sm">
+<div class="p-4 border-b border-outline-variant bg-surface-container-low font-label-md text-label-md text-outline">RECENT ENTRIES</div>
+<div class="divide-y divide-outline-variant">
+<div class="h-12 w-full bg-white"></div>
+<div class="h-12 w-full bg-white"></div>
+<div class="h-12 w-full bg-white"></div>
+<div class="h-12 w-full bg-white"></div>
+</div>
+</div>
+</section>
+</main>
+<!-- Modal Overlay -->
+<div class="fixed inset-0 z-50 flex items-center justify-center modal-blur-bg p-gutter transition-opacity duration-300" id="modal-overlay">
+<!-- Modal Container -->
+<div aria-labelledby="modal-title" aria-modal="true" class="relative w-full max-w-[440px] bg-surface-container-lowest rounded-xl overflow-hidden shadow-xl dark:shadow-2xl shadow-on-surface/10 transform transition-all duration-300 scale-100 opacity-100" role="dialog">
+<!-- Top Accent Strip -->
+<div class="absolute top-0 left-0 right-0 h-[5px] bg-primary"></div>
+<!-- Modal Content -->
+<div class="p-8 flex flex-col items-center text-center">
+<!-- Icon Container -->
+<div class="mb-6 flex items-center justify-center w-12 h-12 rounded-full bg-surface-container-high text-primary">
+<span class="material-symbols-outlined text-[32px]" data-icon="info">info</span>
+</div>
+<!-- Typography -->
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-2" id="modal-title">
+                    No companies selected
+                </h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-8 max-w-[280px]">
+                    Select at least one company first to proceed with this action.
+                </p>
+<!-- Action Button -->
+<button class="w-full py-2.5 px-6 bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:bg-surface-tint active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" onclick="closeModal()">
+                    OK
+                </button>
+</div>
+</div>
+</div>
+<script>
+        function closeModal() {
+            const overlay = document.getElementById('modal-overlay');
+            const modal = overlay.querySelector('div[role="dialog"]');
+            
+            // Outward transition
+            modal.classList.remove('scale-100', 'opacity-100');
+            modal.classList.add('scale-95', 'opacity-0');
+            overlay.classList.add('opacity-0');
+            
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 300);
+        }
+
+        // Lightweight entrance animation
+        window.onload = () => {
+            const overlay = document.getElementById('modal-overlay');
+            const modal = overlay.querySelector('div[role="dialog"]');
+            
+            // Initial state
+            overlay.classList.add('opacity-0');
+            modal.classList.add('scale-95', 'opacity-0');
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                overlay.classList.remove('opacity-0');
+                modal.classList.remove('scale-95', 'opacity-0');
+                modal.classList.add('scale-100', 'opacity-100');
+            });
+        }
+    </script>
+</body></html>

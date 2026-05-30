@@ -1,14 +1,26 @@
 import { useMemo, useState } from 'react';
-import { useAction } from 'convex/react';
+import { useAction, useMutation, useQuery } from 'convex/react';
 import { makeFunctionReference } from 'convex/server';
-import { Icon } from '../outreach/Common';
-import { useOutreachContext } from '../outreach/OutreachContext';
+import { Icon, StatusPill } from '../outreach/Common';
+import {
+  DraftGenerationSuccessModal,
+  DeleteConfirmationModal,
+  GenerationFailedModal,
+  EmptySelectionModal,
+  ModalOverlay,
+  ModalCard,
+  ModalActions,
+  ModalButton,
+} from '../modals';
+import { draftStatusThemes } from './status';
 import type {
   CampaignCompany,
   CampaignHeaderProps,
   CampaignRowProps,
   CampaignScoreProps,
+  CampaignsScreenProps,
   CampaignTableProps,
+  DraftStatus,
   EntityDrawerProps,
 } from './types';
 
@@ -18,12 +30,31 @@ const generateArtifactsAction = makeFunctionReference<
     companies: {
       id: string;
       name: string;
-      industry: string;
-      techStack: string[];
     }[];
   },
   void
 >('artifacts:generateForCompanies');
+
+/** A persisted pipeline company as returned by `companies:listCampaignCompanies`. */
+interface CampaignCompanyRow {
+  id: string;
+  name: string;
+  industry: string;
+  confidence: number;
+  status: DraftStatus;
+}
+
+const listCampaignCompaniesQuery = makeFunctionReference<
+  'query',
+  Record<string, never>,
+  CampaignCompanyRow[]
+>('companies:listCampaignCompanies');
+
+const deleteCompaniesMutation = makeFunctionReference<
+  'mutation',
+  { externalIds: string[] },
+  null
+>('companies:deleteCompanies');
 
 export function GenerateButton({
   onClick,
@@ -47,15 +78,23 @@ export function GenerateButton({
   );
 }
 
+const statusFilterOptions: { value: DraftStatus | 'all'; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'drafted', label: draftStatusThemes.drafted.label },
+  { value: 'not-drafted', label: draftStatusThemes['not-drafted'].label },
+];
+
 export function CampaignHeader({
   query,
   onQueryChange,
+  statusFilter,
+  onStatusFilterChange,
   onGenerate,
-  isGenerating,
+  onDelete,
   selectedCount,
 }: CampaignHeaderProps & {
   onGenerate: () => void;
-  isGenerating: boolean;
+  onDelete: () => void;
   selectedCount: number;
 }) {
   return (
@@ -78,13 +117,38 @@ export function CampaignHeader({
                 onChange={(event) => onQueryChange(event.target.value)}
               />
             </label>
-            <button className="campaignFilterButton" type="button">
-              <Icon name="filter_list" size={16} />
-              Filter
+            <div
+              className="campaignStatusFilter"
+              role="group"
+              aria-label="Filter by status"
+            >
+              {statusFilterOptions.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={
+                    statusFilter === value
+                      ? 'campaignFilterChip campaignFilterChipActive'
+                      : 'campaignFilterChip'
+                  }
+                  aria-pressed={statusFilter === value}
+                  onClick={() => onStatusFilterChange(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button
+              className="campaignDeleteButton"
+              type="button"
+              onClick={onDelete}
+              disabled={selectedCount === 0}
+            >
+              <Icon name="delete" size={16} />
+              Delete
             </button>
             <GenerateButton
               onClick={onGenerate}
-              isLoading={isGenerating}
               disabled={selectedCount === 0}
             />
           </div>
@@ -100,7 +164,11 @@ export function CampaignScore({ score }: CampaignScoreProps) {
       <span className="campaignScoreTrack">
         <span className={`campaignScoreFill campaignScoreFill-${score}`} />
       </span>
-      <span className={score >= 80 ? 'campaignScoreGood' : 'campaignScoreLow'}>
+      <span
+        className={`campaignCellText ${
+          score >= 80 ? 'campaignScoreGood' : 'campaignScoreLow'
+        }`}
+      >
         {score}
       </span>
     </div>
@@ -110,20 +178,32 @@ export function CampaignScore({ score }: CampaignScoreProps) {
 const columns = [
   ['Company Name', 'campaignColName'],
   ['Industry', 'campaignColIndustry'],
-  ['Last Contact', 'campaignColContact'],
+  ['Status', 'campaignColStatus'],
+  ['Template', 'campaignColTemplate'],
+  ['Resume', 'campaignColResume'],
   ['Score', 'campaignColScore'],
 ] as const;
 
 export function CampaignRow({
   company,
   active,
+  generating,
   onSelect,
   onToggleSelected,
+  onShowTemplate,
+  onShowResume,
 }: CampaignRowProps) {
   return (
     <div
-      className={`campaignRow ${active ? 'campaignRowActive' : ''}`}
+      className={[
+        'campaignRow',
+        active ? 'campaignRowActive' : '',
+        generating ? 'campaignRowGenerating' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       role="row"
+      aria-busy={generating}
       tabIndex={0}
       onClick={() => onSelect(company.id)}
       onKeyDown={(event) => {
@@ -144,19 +224,50 @@ export function CampaignRow({
         />
       </div>
       <div role="cell" className="campaignCell campaignColName campaignName">
-        {company.name}
+        <span className="campaignCellText">{company.name}</span>
       </div>
       <div
         role="cell"
         className="campaignCell campaignColIndustry campaignMuted"
       >
-        {company.industry}
+        <span className="campaignCellText">{company.industry}</span>
       </div>
-      <div
-        role="cell"
-        className="campaignCell campaignColContact campaignMuted"
-      >
-        {company.lastContact}
+      <div role="cell" className="campaignCell campaignColStatus">
+        <StatusPill tone={draftStatusThemes[company.status].tone}>
+          {draftStatusThemes[company.status].label}
+        </StatusPill>
+      </div>
+      <div role="cell" className="campaignCell campaignColTemplate">
+        {company.status === 'drafted' ? (
+          <button
+            type="button"
+            className="campaignLink"
+            onClick={(event) => {
+              event.stopPropagation();
+              onShowTemplate(company.id);
+            }}
+          >
+            Show Template
+          </button>
+        ) : (
+          <span className="campaignDash">--</span>
+        )}
+      </div>
+      <div role="cell" className="campaignCell campaignColResume">
+        {company.status === 'drafted' ? (
+          <button
+            type="button"
+            className="campaignLink"
+            onClick={(event) => {
+              event.stopPropagation();
+              onShowResume(company.id);
+            }}
+          >
+            Show Resume
+          </button>
+        ) : (
+          <span className="campaignDash">--</span>
+        )}
       </div>
       <div role="cell" className="campaignCell campaignColScore">
         <CampaignScore score={company.score} />
@@ -168,9 +279,12 @@ export function CampaignRow({
 export function CampaignTable({
   companies,
   activeId,
+  generatingIds,
   onSelect,
   onToggleSelected,
   onToggleAll,
+  onShowTemplate,
+  onShowResume,
 }: CampaignTableProps) {
   const allSelected =
     companies.length > 0 &&
@@ -222,8 +336,11 @@ export function CampaignTable({
                   key={company.id}
                   company={company}
                   active={company.id === activeId}
+                  generating={generatingIds.has(company.id)}
                   onSelect={onSelect}
                   onToggleSelected={onToggleSelected}
+                  onShowTemplate={onShowTemplate}
+                  onShowResume={onShowResume}
                 />
               ))
             )}
@@ -322,8 +439,7 @@ export function EntityDrawer({
   company,
   onClose,
   onGenerate,
-  isGenerating,
-}: EntityDrawerProps & { onGenerate: () => void; isGenerating: boolean }) {
+}: EntityDrawerProps & { onGenerate: () => void }) {
   return (
     <aside className="entityDrawer" aria-label="Entity details">
       <div className="drawerHeader">
@@ -350,7 +466,10 @@ export function EntityDrawer({
         <RecentActivity />
       </div>
       <div className="drawerFooter">
-        <GenerateButton onClick={onGenerate} isLoading={isGenerating} />
+        <GenerateButton
+          onClick={onGenerate}
+          disabled={company.status === 'drafted'}
+        />
         <div className="drawerSecondaryActions">
           <button type="button">
             <Icon name="skip_next" size={16} />
@@ -366,15 +485,28 @@ export function EntityDrawer({
   );
 }
 
-export function CampaignsScreen() {
+export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
   const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<DraftStatus | 'all'>('all');
   const [activeId, setActiveId] = useState<string | undefined>(undefined);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
+  const [generatedCount, setGeneratedCount] = useState<number | null>(null);
+  const [genFailure, setGenFailure] = useState<{
+    targets: { id: string; name: string }[];
+  } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
+  const [artifactView, setArtifactView] = useState<{
+    name: string;
+    kind: 'template' | 'resume';
+  } | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
 
-  const { importedCompanies } = useOutreachContext();
+  const companyRows = useQuery(listCampaignCompaniesQuery, {});
+  const importedCompanies = useMemo(() => companyRows ?? [], [companyRows]);
   const generateArtifacts = useAction(generateArtifactsAction);
+  const deleteCompanies = useMutation(deleteCompaniesMutation);
 
   const companies: CampaignCompany[] = useMemo(
     () =>
@@ -382,18 +514,21 @@ export function CampaignsScreen() {
         id: company.id,
         name: company.name,
         industry: company.industry,
-        lastContact: 'Never',
         score: company.confidence,
+        status: company.status,
         selected: selectedIds.has(company.id),
       })),
     [importedCompanies, selectedIds],
   );
 
   const filteredCompanies = useMemo(() => {
-    if (query.trim() === '') return companies;
-    const lowerQuery = query.toLowerCase();
-    return companies.filter((c) => c.name.toLowerCase().includes(lowerQuery));
-  }, [companies, query]);
+    const lowerQuery = query.trim().toLowerCase();
+    return companies.filter(
+      (c) =>
+        (lowerQuery === '' || c.name.toLowerCase().includes(lowerQuery)) &&
+        (statusFilter === 'all' || c.status === statusFilter),
+    );
+  }, [companies, query, statusFilter]);
 
   const activeCompany = useMemo(
     () =>
@@ -403,61 +538,81 @@ export function CampaignsScreen() {
     [activeId, companies],
   );
 
-  const handleGenerate = async () => {
-    const selected = importedCompanies.filter((c) => selectedIds.has(c.id));
-    if (selected.length === 0) {
-      alert('Please select at least one company to generate artifacts.');
-      return;
-    }
-
-    setIsGenerating(true);
-    setGenError(null);
-
+  // Generate one company's artifacts, owning its own row-shimmer lifecycle so
+  // multiple companies can generate in parallel and settle independently.
+  // Rejects on failure; callers aggregate outcomes via Promise.allSettled.
+  const generateOne = async (company: { id: string; name: string }) => {
+    setGeneratingIds((prev) => new Set(prev).add(company.id));
     try {
       await generateArtifacts({
-        companies: selected.map((c) => ({
-          id: c.id,
-          name: c.name,
-          industry: c.industry,
-          techStack: c.techStack,
-        })),
+        companies: [{ id: company.id, name: company.name }],
       });
-      alert('Successfully triggered generation for selected companies!');
-    } catch (error) {
-      console.error('Generation failed:', error);
-      const message =
-        error instanceof Error ? error.message : 'Unknown generation error';
-      setGenError(message);
-      alert(`Generation failed: ${message}`);
     } finally {
-      setIsGenerating(false);
+      setGeneratingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(company.id);
+        return next;
+      });
     }
   };
 
+  // Run a batch in parallel; show the success modal, or the failure modal
+  // (with the failed companies, so Retry can re-run just those).
+  const runGeneration = async (targets: { id: string; name: string }[]) => {
+    if (targets.length === 0) return;
+    const results = await Promise.allSettled(
+      targets.map((c) => generateOne(c)),
+    );
+    const failed = targets.filter((_, i) => results[i]!.status === 'rejected');
+    if (failed.length > 0) {
+      setGenFailure({ targets: failed });
+    } else {
+      setGeneratedCount(targets.length);
+    }
+  };
+
+  const handleGenerate = async () => {
+    const selectedAll = importedCompanies.filter((c) => selectedIds.has(c.id));
+    if (selectedAll.length === 0) {
+      setNotice('Select at least one company to generate templates & resumes.');
+      return;
+    }
+    // Skip companies already drafted or with generation in flight.
+    const selected = selectedAll.filter(
+      (c) => c.status !== 'drafted' && !generatingIds.has(c.id),
+    );
+    await runGeneration(selected.map((c) => ({ id: c.id, name: c.name })));
+  };
+
   const handleGenerateSingle = async (companyId: string) => {
+    if (generatingIds.has(companyId)) return;
     const company = importedCompanies.find((c) => c.id === companyId);
-    if (!company) return;
+    if (!company || company.status === 'drafted') return;
+    await runGeneration([{ id: company.id, name: company.name }]);
+  };
 
-    setIsGenerating(true);
+  const handleDelete = () => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) {
+      setNotice('Select at least one company to delete.');
+      return;
+    }
+    setPendingDelete(ids);
+  };
+
+  const confirmDelete = async () => {
+    const ids = pendingDelete;
+    setPendingDelete(null);
+    if (ids === null) return;
     setGenError(null);
-
     try {
-      await generateArtifacts({
-        companies: [
-          {
-            id: company.id,
-            name: company.name,
-            industry: company.industry,
-            techStack: company.techStack,
-          },
-        ],
-      });
-      alert(`Successfully triggered generation for ${company.name}!`);
+      await deleteCompanies({ externalIds: ids });
+      setSelectedIds(new Set());
     } catch (error) {
-      console.error('Generation failed:', error);
-      setGenError(error instanceof Error ? error.message : 'Unknown error');
-    } finally {
-      setIsGenerating(false);
+      console.error('Delete failed:', error);
+      setGenError(
+        error instanceof Error ? error.message : 'Unknown delete error',
+      );
     }
   };
 
@@ -482,13 +637,20 @@ export function CampaignsScreen() {
     });
   }
 
+  const openArtifact = (kind: 'template' | 'resume') => (id: string) => {
+    const company = importedCompanies.find((c) => c.id === id);
+    if (company) setArtifactView({ name: company.name, kind });
+  };
+
   return (
     <div className="campaignScreen">
       <CampaignHeader
         query={query}
         onQueryChange={setQuery}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
         onGenerate={handleGenerate}
-        isGenerating={isGenerating}
+        onDelete={handleDelete}
         selectedCount={selectedIds.size}
       />
       <div className="campaignCanvas">
@@ -496,9 +658,12 @@ export function CampaignsScreen() {
           <CampaignTable
             companies={filteredCompanies}
             activeId={activeId ?? ''}
+            generatingIds={generatingIds}
             onSelect={setActiveId}
             onToggleSelected={toggleSelected}
             onToggleAll={toggleAll}
+            onShowTemplate={openArtifact('template')}
+            onShowResume={openArtifact('resume')}
           />
         </div>
       </div>
@@ -507,10 +672,73 @@ export function CampaignsScreen() {
           company={activeCompany}
           onClose={() => setActiveId(undefined)}
           onGenerate={() => handleGenerateSingle(activeCompany.id)}
-          isGenerating={isGenerating}
         />
       ) : null}
       {genError && <div className="campaignGenError">Error: {genError}</div>}
+      {generatedCount !== null ? (
+        <DraftGenerationSuccessModal
+          count={generatedCount}
+          onDismiss={() => setGeneratedCount(null)}
+          onGoToDraftReview={() => {
+            setGeneratedCount(null);
+            onViewDraftReview?.();
+          }}
+        />
+      ) : null}
+      {genFailure !== null ? (
+        <GenerationFailedModal
+          message={`We couldn't generate templates for ${
+            genFailure.targets.length
+          } ${
+            genFailure.targets.length === 1 ? 'company' : 'companies'
+          }. Please try again.`}
+          onDismiss={() => setGenFailure(null)}
+          onRetry={() => {
+            const targets = genFailure.targets;
+            setGenFailure(null);
+            void runGeneration(targets);
+          }}
+        />
+      ) : null}
+      {pendingDelete !== null ? (
+        <DeleteConfirmationModal
+          count={pendingDelete.length}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={confirmDelete}
+        />
+      ) : null}
+      {notice !== null ? (
+        <EmptySelectionModal
+          message={notice}
+          onDismiss={() => setNotice(null)}
+        />
+      ) : null}
+      {artifactView !== null ? (
+        <ModalOverlay
+          ariaLabel={`${
+            artifactView.kind === 'template' ? 'Email template' : 'Resume'
+          } for ${artifactView.name}`}
+          onDismiss={() => setArtifactView(null)}
+        >
+          <ModalCard accent="primary">
+            <div className="modalContent">
+              <h2 className="modalTitle">
+                {artifactView.kind === 'template' ? 'Email Template' : 'Resume'}
+              </h2>
+              <p className="modalBody">
+                {artifactView.name} — viewer coming soon.
+              </p>
+              <ModalActions layout="column">
+                <ModalButton
+                  label="Close"
+                  variant="primary"
+                  onClick={() => setArtifactView(null)}
+                />
+              </ModalActions>
+            </div>
+          </ModalCard>
+        </ModalOverlay>
+      ) : null}
     </div>
   );
 }

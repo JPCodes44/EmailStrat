@@ -13,6 +13,9 @@ export interface NavItem {
 /** Confidence-score presentation tone. */
 export type ConfidenceTone = 'positive' | 'neutral';
 
+/** Semantic tone for a status pill — selects its color theme. */
+export type StatusTone = 'success' | 'danger' | 'neutral';
+
 /** A discovered company row. */
 export interface Company {
   id: string;
@@ -89,6 +92,13 @@ export interface ConfidenceBadgeProps {
   tone: ConfidenceTone;
 }
 
+export interface StatusPillProps {
+  /** Color theme to apply. */
+  tone: StatusTone;
+  /** Pill contents — typically a short status label. */
+  children: ReactNode;
+}
+
 export interface FilterChipProps {
   label: string;
   onRemove: () => void;
@@ -129,6 +139,11 @@ export interface SidebarProps {
 export interface PageHeaderProps {
   title: string;
   subtitle: string;
+}
+
+export interface ScreenProps {
+  /** Navigate to the Target Companies pipeline (from the discovery modal). */
+  onViewCompanies?: () => void;
 }
 
 /* ------------------------------------------------------ filter console */

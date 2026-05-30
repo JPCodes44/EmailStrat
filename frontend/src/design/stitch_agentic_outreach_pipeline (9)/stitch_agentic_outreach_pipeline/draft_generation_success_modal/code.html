@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Success Confirmation - Outreach OS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Style Guidance & Theme Configuration -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+                  "surface": "#f7f9fb",
+                  "secondary-fixed-dim": "#b7c8e1",
+                  "surface-tint": "#0053db",
+                  "surface-bright": "#f7f9fb",
+                  "primary-fixed": "#dbe1ff",
+                  "secondary-container": "#d0e1fb",
+                  "outline-variant": "#c3c6d7",
+                  "on-secondary-fixed": "#0b1c30",
+                  "outline": "#737686",
+                  "on-background": "#191c1e",
+                  "surface-container-lowest": "#ffffff",
+                  "surface-container": "#eceef0",
+                  "surface-container-low": "#f2f4f6",
+                  "error-container": "#ffdad6",
+                  "surface-variant": "#e0e3e5",
+                  "on-secondary": "#ffffff",
+                  "on-error": "#ffffff",
+                  "tertiary-fixed-dim": "#4edea3",
+                  "tertiary-fixed": "#6ffbbe",
+                  "tertiary-container": "#007d55",
+                  "surface-dim": "#d8dadc",
+                  "on-error-container": "#93000a",
+                  "tertiary": "#006242",
+                  "on-surface": "#191c1e",
+                  "secondary": "#505f76",
+                  "inverse-primary": "#b4c5ff",
+                  "error": "#ba1a1a",
+                  "on-surface-variant": "#434655",
+                  "on-primary-fixed": "#00174b",
+                  "inverse-on-surface": "#eff1f3",
+                  "on-primary-fixed-variant": "#003ea8",
+                  "on-tertiary-container": "#bdffdb",
+                  "background": "#f7f9fb",
+                  "secondary-fixed": "#d3e4fe",
+                  "on-secondary-fixed-variant": "#38485d",
+                  "surface-container-high": "#e6e8ea",
+                  "surface-container-highest": "#e0e3e5",
+                  "primary-container": "#2563eb",
+                  "on-primary": "#ffffff",
+                  "inverse-surface": "#2d3133",
+                  "primary-fixed-dim": "#b4c5ff",
+                  "on-tertiary": "#ffffff",
+                  "primary": "#004ac6",
+                  "on-tertiary-fixed": "#002113",
+                  "on-primary-container": "#eeefff",
+                  "on-tertiary-fixed-variant": "#005236",
+                  "on-secondary-container": "#54647a"
+          },
+          "borderRadius": {
+                  "DEFAULT": "0.25rem",
+                  "lg": "0.5rem",
+                  "xl": "0.75rem",
+                  "full": "9999px"
+          },
+          "spacing": {
+                  "inset-squish": "8px 12px",
+                  "unit": "4px",
+                  "stack-sm": "8px",
+                  "inset-equal": "12px",
+                  "stack-md": "16px",
+                  "gutter": "16px",
+                  "container-margin": "24px"
+          },
+          "fontFamily": {
+                  "code-sm": ["jetbrainsMono"],
+                  "body-lg": ["Inter"],
+                  "label-md": ["Inter"],
+                  "display-lg": ["Inter"],
+                  "headline-md": ["Inter"],
+                  "body-sm": ["Inter"],
+                  "headline-sm": ["Inter"],
+                  "body-md": ["Inter"]
+          },
+          "fontSize": {
+                  "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                  "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                  "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                  "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                  "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                  "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                  "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                  "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .blur-background {
+      filter: blur(8px) grayscale(20%);
+    }
+    .overlay-vignette {
+      background: radial-gradient(circle, transparent 20%, rgba(25, 28, 30, 0.1) 100%);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md overflow-hidden h-screen w-full flex items-center justify-center">
+<!-- Background Content (Simulating Screen 12: Company Details) -->
+<div class="fixed inset-0 blur-background z-0">
+<div class="flex flex-col h-full">
+<!-- TopAppBar Mock -->
+<div class="bg-surface-container-lowest border-b border-outline-variant flex justify-between items-center h-16 px-gutter w-full">
+<div class="flex items-center gap-4">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">Outreach OS</span>
+<div class="h-8 w-[1px] bg-outline-variant mx-2"></div>
+<span class="font-body-md text-body-md text-on-surface-variant">Companies / Acme Corp</span>
+</div>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant">help_outline</span>
+</div>
+</div>
+<div class="flex flex-1 overflow-hidden">
+<!-- SideNav Mock -->
+<div class="bg-surface border-r border-outline-variant w-[240px] flex flex-col gap-unit p-4">
+<div class="flex flex-col gap-2 mb-8">
+<div class="w-10 h-10 bg-primary-container rounded flex items-center justify-center text-white font-bold">O</div>
+<div>
+<p class="font-label-md text-label-md font-bold text-on-surface">Outreach OS</p>
+<p class="text-[10px] text-on-surface-variant">Enterprise Outreach</p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-lg bg-secondary-container text-on-secondary-container font-bold">
+<span class="material-symbols-outlined">business</span>
+<span class="font-label-md text-label-md">Companies</span>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-lg text-on-surface-variant">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-lg text-on-surface-variant">
+<span class="material-symbols-outlined">campaign</span>
+<span class="font-label-md text-label-md">Campaigns</span>
+</div>
+</div>
+<!-- Main Content Mock -->
+<main class="flex-1 p-container-margin bg-background">
+<div class="max-w-5xl mx-auto space-y-6">
+<header class="flex justify-between items-end">
+<div>
+<h1 class="font-display-lg text-display-lg text-on-surface">Acme Corporation</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Global Technology &amp; Manufacturing</p>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-md text-label-md">Run Generation Job</button>
+</header>
+<div class="grid grid-cols-3 gap-6">
+<div class="col-span-2 bg-white border border-outline-variant rounded-xl p-6 h-[400px]">
+<div class="border-b border-outline-variant pb-4 mb-4 flex justify-between">
+<span class="font-headline-sm text-headline-sm">Company Intel</span>
+<span class="material-symbols-outlined text-outline">more_vert</span>
+</div>
+<div class="space-y-4 opacity-50">
+<div class="h-4 bg-surface-container rounded w-3/4"></div>
+<div class="h-4 bg-surface-container rounded w-1/2"></div>
+<div class="h-4 bg-surface-container rounded w-5/6"></div>
+</div>
+</div>
+<div class="bg-white border border-outline-variant rounded-xl p-6">
+<div class="border-b border-outline-variant pb-4 mb-4">
+<span class="font-headline-sm text-headline-sm">Health Meter</span>
+</div>
+<div class="h-32 w-32 rounded-full border-[12px] border-tertiary-fixed-dim mx-auto mt-8 flex items-center justify-center">
+<span class="font-headline-md text-headline-md text-tertiary">98</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</div>
+<!-- Modal Overlay -->
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-on-surface/20 backdrop-blur-[2px] transition-opacity duration-300">
+<!-- Success Modal -->
+<div class="bg-surface-container-lowest w-full max-w-[440px] rounded-xl border border-outline-variant shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300" id="success-modal">
+<!-- Top Decorative Accent -->
+<div class="h-1 bg-tertiary"></div>
+<div class="p-8 flex flex-col items-center text-center">
+<!-- Success Icon -->
+<div class="w-16 h-16 bg-tertiary-fixed rounded-full flex items-center justify-center mb-6 ring-8 ring-tertiary-fixed-dim/20">
+<span class="material-symbols-outlined text-tertiary text-4xl" style="font-variation-settings: 'FILL' 1, 'wght' 600;">check_circle</span>
+</div>
+<!-- Heading -->
+<h2 class="font-headline-md text-headline-md text-on-surface mb-3 tracking-tight">Draft Generation Complete</h2>
+<!-- Body Text -->
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mb-8 max-w-[320px]">
+          50 email templates have been generated and are ready for your review in the <span class="font-bold text-on-surface">Draft Review</span> workspace.
+        </p>
+<!-- Actions -->
+<div class="flex flex-col w-full gap-3">
+<button class="w-full bg-primary-container hover:bg-primary transition-all duration-200 text-on-primary py-3 rounded-lg font-label-md text-label-md font-bold shadow-sm active:scale-[0.98]" onclick="window.location.reload()">
+            Go to Draft Review
+          </button>
+<button class="w-full bg-transparent hover:bg-surface-container border border-outline-variant transition-all duration-200 text-on-surface-variant py-3 rounded-lg font-label-md text-label-md font-medium" onclick="document.getElementById('success-modal').parentElement.remove()">
+            Dismiss
+          </button>
+</div>
+</div>
+<!-- Footer Detail -->
+<div class="bg-surface-container-low px-8 py-3 flex justify-between items-center border-t border-outline-variant">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span class="font-label-md text-[10px] uppercase tracking-wider text-outline">System Safe</span>
+</div>
+<span class="font-label-md text-[10px] text-outline">ID: GEN-50-AUTO</span>
+</div>
+</div>
+</div>
+<!-- Background Decorative Visuals (Optional micro-interactions) -->
+<script>
+    // Simple entry animation for buttons
+    document.addEventListener('DOMContentLoaded', () => {
+      const modal = document.getElementById('success-modal');
+      modal.style.opacity = '0';
+      modal.style.transform = 'translateY(10px) scale(0.95)';
+      
+      setTimeout(() => {
+        modal.style.transition = 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+        modal.style.opacity = '1';
+        modal.style.transform = 'translateY(0) scale(1)';
+      }, 100);
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const overlay = document.querySelector('.bg-on-surface\\/20');
+        if (overlay) overlay.remove();
+      }
+    });
+  </script>
+</body></html>

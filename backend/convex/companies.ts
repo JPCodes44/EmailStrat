@@ -2,7 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import { v } from 'convex/values';
 // `./_generated/server` is produced by `bunx convex dev`. Until you run it once,
 // this import will not resolve — that is expected for a fresh checkout.
-import { action } from './_generated/server';
+import { action, mutation, query } from './_generated/server';
 
 interface CompanyResearchCandidate {
   name?: string;
@@ -189,4 +189,98 @@ export const research = action({
     ),
     total: v.number(),
   }),
+});
+
+/** Fields persisted for an imported company (the frontend `Company` shape). */
+const companyInput = v.object({
+  externalId: v.string(),
+  name: v.string(),
+  domain: v.string(),
+  initial: v.string(),
+  industry: v.string(),
+  location: v.string(),
+  size: v.string(),
+  techStack: v.array(v.string()),
+  confidence: v.number(),
+  confidenceTone: v.union(v.literal('positive'), v.literal('neutral')),
+});
+
+/**
+ * Upsert selected companies into the pipeline; idempotent by `externalId`.
+ * Returns how many were newly inserted (vs skipped as existing duplicates).
+ */
+export const importCompanies = mutation({
+  args: { companies: v.array(companyInput) },
+  returns: v.object({ inserted: v.number() }),
+  handler: async (ctx, { companies }) => {
+    let inserted = 0;
+    for (const company of companies) {
+      const existing = await ctx.db
+        .query('companies')
+        .withIndex('by_externalId', (q) =>
+          q.eq('externalId', company.externalId),
+        )
+        .unique();
+      if (existing === null) {
+        await ctx.db.insert('companies', {
+          ...company,
+          createdAt: new Date().toISOString(),
+        });
+        inserted += 1;
+      }
+    }
+    return { inserted };
+  },
+});
+
+/** List pipeline companies, deriving draft status from the artifacts table. */
+export const listCampaignCompanies = query({
+  args: {},
+  handler: async (ctx) => {
+    const companies = await ctx.db.query('companies').collect();
+    return Promise.all(
+      companies.map(async (company) => {
+        const artifact = await ctx.db
+          .query('artifacts')
+          .withIndex('by_companyId', (q) =>
+            q.eq('companyId', company.externalId),
+          )
+          .unique();
+        return {
+          id: company.externalId,
+          name: company.name,
+          industry: company.industry,
+          confidence: company.confidence,
+          status:
+            artifact?.status === 'completed'
+              ? ('drafted' as const)
+              : ('not-drafted' as const),
+        };
+      }),
+    );
+  },
+});
+
+/** Remove companies from the pipeline, along with any generated artifacts. */
+export const deleteCompanies = mutation({
+  args: { externalIds: v.array(v.string()) },
+  handler: async (ctx, { externalIds }) => {
+    for (const externalId of externalIds) {
+      const company = await ctx.db
+        .query('companies')
+        .withIndex('by_externalId', (q) => q.eq('externalId', externalId))
+        .unique();
+      if (company !== null) {
+        await ctx.db.delete(company._id);
+      }
+      // Drafted companies have an artifact; remove it too. (No-op otherwise.)
+      const artifact = await ctx.db
+        .query('artifacts')
+        .withIndex('by_companyId', (q) => q.eq('companyId', externalId))
+        .unique();
+      if (artifact !== null) {
+        await ctx.db.delete(artifact._id);
+      }
+    }
+  },
 });

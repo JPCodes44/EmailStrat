@@ -1,0 +1,126 @@
+import type { ReactNode } from 'react';
+
+/** Icon color theme for the success icon badge. */
+export type ModalTone = 'primary' | 'tertiary';
+
+/** Color of a modal card's top accent strip. */
+export type ModalAccent = 'primary' | 'tertiary' | 'error' | 'amber';
+
+/** Card background treatment (white by default, or a tinted error surface). */
+export type ModalSurface = 'default' | 'error';
+
+/** Tone of the simple (non-haloed) alert icon. */
+export type ModalIconVariant = 'warning' | 'danger' | 'error' | 'info';
+
+export interface ModalOverlayProps {
+  /** Accessible label describing the dialog. */
+  ariaLabel: string;
+  /** Fired on backdrop click or the Escape key. */
+  onDismiss: () => void;
+  children: ReactNode;
+}
+
+export interface ModalCardProps {
+  /** Optional colored accent strip across the top edge. */
+  accent?: ModalAccent;
+  /** Card surface; `error` tints the whole card (warning modals). */
+  surface?: ModalSurface;
+  children: ReactNode;
+}
+
+export interface ModalIconBadgeProps {
+  /** Material Symbols glyph for the central icon. */
+  icon: string;
+  tone: ModalTone;
+  /** Render a small check sub-badge at the bottom-right. */
+  withCheck?: boolean;
+}
+
+export interface ModalIconProps {
+  /** Material Symbols glyph for the central icon. */
+  icon: string;
+  variant: ModalIconVariant;
+}
+
+export type ModalButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
+
+export interface ModalButtonProps {
+  label: string;
+  variant: ModalButtonVariant;
+  onClick?: () => void;
+  /** Optional trailing Material Symbols glyph. */
+  trailingIcon?: string;
+}
+
+export interface ModalActionsProps {
+  layout?: 'row' | 'column';
+  children: ReactNode;
+}
+
+export interface QualityMeterProps {
+  label: string;
+  /** Right-aligned qualitative value, e.g. "Excellent". */
+  value: string;
+  /** Filled segment count. */
+  filled: number;
+  total?: number;
+}
+
+export interface ModalStatusFooterProps {
+  /** Left status text, e.g. "System Safe". */
+  status: string;
+  /** Right detail text, e.g. "ID: GEN-50-AUTO". */
+  detail: string;
+}
+
+export interface ModalCodeFooterProps {
+  /** Left monospace code, e.g. "ERROR_CODE: TIMEOUT_0x442". */
+  code: string;
+  /** Right-aligned support label. */
+  supportLabel?: string;
+}
+
+export interface CompanyDiscoverySuccessModalProps {
+  /** Number of newly discovered companies. */
+  count: number;
+  onDismiss: () => void;
+  onViewCompanies: () => void;
+}
+
+export interface DraftGenerationSuccessModalProps {
+  /** Number of generated email templates. */
+  count: number;
+  /** Batch id shown in the footer, e.g. "GEN-50-AUTO". */
+  batchId?: string;
+  onDismiss: () => void;
+  onGoToDraftReview: () => void;
+}
+
+export interface ImportWarningModalProps {
+  /** Number of selected companies that were all already in the pipeline. */
+  count: number;
+  onDismiss: () => void;
+  onViewPipeline?: () => void;
+}
+
+export interface DeleteConfirmationModalProps {
+  /** Number of companies pending deletion. */
+  count: number;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+export interface GenerationFailedModalProps {
+  /** Human-readable failure description. */
+  message: string;
+  /** Optional error code shown in the footer. */
+  errorCode?: string;
+  onDismiss: () => void;
+  onRetry: () => void;
+}
+
+export interface EmptySelectionModalProps {
+  /** Body copy; defaults to a generic "select at least one" message. */
+  message?: string;
+  onDismiss: () => void;
+}

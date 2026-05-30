@@ -2,7 +2,12 @@ import { Button } from './Common';
 import { FilterConsole } from './Filters';
 import { Results } from './Results';
 import { useOutreachContext } from './OutreachContext';
-import type { PageHeaderProps } from './types';
+import {
+  CompanyDiscoverySuccessModal,
+  ImportWarningModal,
+  EmptySelectionModal,
+} from '../modals';
+import type { PageHeaderProps, ScreenProps } from './types';
 
 /** Page title, supporting copy, and the Recent Searches action. */
 export function PageHeader({ title, subtitle }: PageHeaderProps) {
@@ -20,7 +25,7 @@ export function PageHeader({ title, subtitle }: PageHeaderProps) {
 }
 
 /** Top-level "Generate Target List" screen wiring state to presentation. */
-export function Screen() {
+export function Screen({ onViewCompanies }: ScreenProps) {
   const s = useOutreachContext();
   return (
     <>
@@ -66,6 +71,32 @@ export function Screen() {
         onExport={() => undefined}
         onImport={s.importToCampaign}
       />
+      {s.importModal?.kind === 'success' ? (
+        <CompanyDiscoverySuccessModal
+          count={s.importModal.count}
+          onDismiss={s.dismissImportModal}
+          onViewCompanies={() => {
+            s.dismissImportModal();
+            onViewCompanies?.();
+          }}
+        />
+      ) : null}
+      {s.importModal?.kind === 'warning' ? (
+        <ImportWarningModal
+          count={s.importModal.count}
+          onDismiss={s.dismissImportModal}
+          onViewPipeline={() => {
+            s.dismissImportModal();
+            onViewCompanies?.();
+          }}
+        />
+      ) : null}
+      {s.importModal?.kind === 'empty' ? (
+        <EmptySelectionModal
+          message="Select at least one company to import into your pipeline."
+          onDismiss={s.dismissImportModal}
+        />
+      ) : null}
     </>
   );
 }

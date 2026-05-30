@@ -6,11 +6,19 @@ import { App } from './App';
 describe('App navigation', () => {
   it('switches between Generation Jobs and Companies from the sidebar', async () => {
     render(<App />);
+    // Companies is the default screen on load.
     expect(
-      screen.getByRole('heading', { name: 'Generation Jobs' }),
+      screen.getByRole('heading', { name: 'Generate Target List' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Notifications' }),
+    ).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /Generation Jobs/ }),
+    );
+    expect(
+      screen.getByRole('heading', { name: 'Generation Jobs' }),
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: /Companies/ }));

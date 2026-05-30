@@ -1,37 +1,33 @@
+'use node';
+
 import { v } from 'convex/values';
 import OpenAI from 'openai';
-import { action, internalMutation } from './_generated/server';
+import { action } from './_generated/server';
 import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import { EMAIL_SYSTEM_PROMPT } from './prompts/email_system';
+import { RESUME_SYSTEM_PROMPT } from './prompts/resume_system';
+import { CANDIDATE_RESUMES } from './resumes';
 
 const OPENAI_MODEL = 'gpt-5.5';
 
-/** Persist generated artifacts to the database. */
-export const saveResult = internalMutation({
-  args: {
-    companyId: v.string(),
-    emailTemplate: v.string(),
-    resumeLatex: v.string(),
-    status: v.union(v.literal('pending'), v.literal('completed'), v.literal('failed')),
-  },
-  handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query('artifacts')
-      .withIndex('by_companyId', (q) => q.eq('companyId', args.companyId))
-      .unique();
-
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        ...args,
-        createdAt: new Date().toISOString(),
-      });
-    } else {
-      await ctx.db.insert('artifacts', {
-        ...args,
-        createdAt: new Date().toISOString(),
-      });
-    }
-  },
-});
+/** Compile LaTeX to PDF bytes via the ytotech LaTeX-as-a-service API. */
+async function compileLatexToPdf(latex: string): Promise<ArrayBuffer> {
+  const res = await fetch('https://latex.ytotech.com/builds/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      compiler: 'pdflatex',
+      resources: [{ main: true, content: latex }],
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `LaTeX compile failed (${res.status}): ${await res.text()}`,
+    );
+  }
+  return res.arrayBuffer();
+}
 
 /** Batch generate artifacts for multiple companies using OpenAI. */
 export const generateForCompanies = action({
@@ -40,8 +36,6 @@ export const generateForCompanies = action({
       v.object({
         id: v.string(),
         name: v.string(),
-        industry: v.string(),
-        techStack: v.array(v.string()),
       }),
     ),
   },
@@ -53,46 +47,67 @@ export const generateForCompanies = action({
 
     const openai = new OpenAI({ apiKey });
 
+    // System prompts + combined candidate profile, bundled as TS constants so
+    // they ship with the function (loose .md files are not bundled by Convex).
+    const profileBlock = `\n\nCANDIDATE RESUME(S):\n${CANDIDATE_RESUMES}`;
+    const emailSystem = `${EMAIL_SYSTEM_PROMPT}${profileBlock}\n\nReturn ONLY the body of the email.`;
+
+    const dataTemplate = `Target Company: {{name}}`;
+
     for (const company of companies) {
       try {
-        const response = await openai.chat.completions.create({
+        const userData = dataTemplate.replace('{{name}}', company.name);
+
+        // 1. Generate the cold email first.
+        const emailRes = await openai.chat.completions.create({
           model: OPENAI_MODEL,
           messages: [
-            {
-              role: 'system',
-              content: `You are an expert career coach and outbound strategist. 
-              Generate a highly personalized cold email and a tailored LaTeX resume section for a specific company.
-              
-              Output your response in raw JSON format exactly as follows:
-              {
-                "email": "The full email content",
-                "latex": "The full LaTeX code for a tailored resume section"
-              }`,
-            },
-            {
-              role: 'user',
-              content: `Target Company: ${company.name}
-              Industry: ${company.industry}
-              Tech Stack: ${company.techStack.join(', ')}`,
-            },
+            { role: 'system', content: emailSystem },
+            { role: 'user', content: userData },
           ],
-          response_format: { type: 'json_object' },
         });
+        const emailTemplate = emailRes.choices[0]?.message.content || '';
 
-        const content = response.choices[0].message.content;
-        if (!content) throw new Error('OpenAI returned empty content');
+        // 2. Inject that email into the resume prompt's [COPIED EMAIL] slot, so
+        //    the resume is tailored to the email. (Function replacer avoids `$`
+        //    in the email being treated as a special replacement pattern.)
+        const resumeSystem = `${RESUME_SYSTEM_PROMPT.replace(
+          '[COPIED EMAIL]',
+          () => emailTemplate,
+        )}${profileBlock}\n\nReturn ONLY the raw LaTeX code. Do not include markdown code blocks or prose.`;
 
-        const parsed = JSON.parse(content);
+        // 3. Generate the resume from the email-aware prompt.
+        const resumeRes = await openai.chat.completions.create({
+          model: OPENAI_MODEL,
+          messages: [
+            { role: 'system', content: resumeSystem },
+            { role: 'user', content: userData },
+          ],
+        });
+        const resumeLatex = resumeRes.choices[0]?.message.content || '';
 
-        await ctx.runMutation(internal.artifacts.saveResult, {
+        // 4. Compile the resume LaTeX to a PDF and store it. A compile failure
+        //    degrades gracefully: the email + LaTeX are still saved.
+        let resumePdfId: Id<'_storage'> | undefined;
+        try {
+          const pdf = await compileLatexToPdf(resumeLatex);
+          resumePdfId = await ctx.storage.store(
+            new Blob([pdf], { type: 'application/pdf' }),
+          );
+        } catch (err) {
+          console.error(`PDF compile failed for ${company.name}:`, err);
+        }
+
+        await ctx.runMutation(internal.artifactsDb.saveResult, {
           companyId: company.id,
-          emailTemplate: parsed.email,
-          resumeLatex: parsed.latex,
+          emailTemplate,
+          resumeLatex,
+          ...(resumePdfId ? { resumePdfId } : {}),
           status: 'completed',
         });
       } catch (error) {
         console.error(`Failed to generate for ${company.name}:`, error);
-        await ctx.runMutation(internal.artifacts.saveResult, {
+        await ctx.runMutation(internal.artifactsDb.saveResult, {
           companyId: company.id,
           emailTemplate: '',
           resumeLatex: '',

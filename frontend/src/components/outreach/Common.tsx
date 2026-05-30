@@ -4,6 +4,7 @@ import type {
   IconProps,
   InputBoxProps,
   SplitButtonProps,
+  StatusPillProps,
 } from './types';
 
 const variantClass: Record<ButtonVariant, string> = {
@@ -48,6 +49,15 @@ export function Button({
       {iconName !== undefined ? <Icon name={iconName} size={18} /> : null}
       {children}
     </button>
+  );
+}
+
+/** Color-themed status pill. `tone` selects the success/danger/neutral theme. */
+export function StatusPill({ tone, children }: StatusPillProps) {
+  return (
+    <span className={`outreachStatusPill outreachStatusPill-${tone}`}>
+      {children}
+    </span>
   );
 }
 

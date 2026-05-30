@@ -81,16 +81,9 @@ describe('ResultsRow', () => {
 });
 
 describe('ResultsHeader', () => {
-  it('renders the title and formatted match count', () => {
-    render(
-      <ResultsHeader
-        matches={1240}
-        selectedCount={0}
-        onClearSelected={vi.fn()}
-      />,
-    );
+  it('renders the title and a disabled clear action with no selection', () => {
+    render(<ResultsHeader selectedCount={0} onClearSelected={vi.fn()} />);
     expect(screen.getByText('Discovery Results')).toBeInTheDocument();
-    expect(screen.getByText('1,240 matches')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Clear Results/ }),
     ).toBeDisabled();
@@ -99,11 +92,7 @@ describe('ResultsHeader', () => {
   it('fires the clear action when rows are selected', async () => {
     const onClearSelected = vi.fn();
     render(
-      <ResultsHeader
-        matches={1240}
-        selectedCount={2}
-        onClearSelected={onClearSelected}
-      />,
+      <ResultsHeader selectedCount={2} onClearSelected={onClearSelected} />,
     );
     await userEvent.click(
       screen.getByRole('button', { name: /Clear Results/ }),
@@ -179,7 +168,7 @@ describe('Results', () => {
         onImport={vi.fn()}
       />,
     );
-    expect(screen.getByText('1,240 matches')).toBeInTheDocument();
+    expect(screen.getByText('Discovery Results')).toBeInTheDocument();
     expect(screen.getByText('Nexus Dynamics')).toBeInTheDocument();
     expect(screen.getByText('2 companies selected')).toBeInTheDocument();
   });
