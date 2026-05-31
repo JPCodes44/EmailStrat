@@ -1,21 +1,22 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { ConvexProvider, ConvexReactClient } from 'convex/react';
 import { EmailTableScreen } from './EmailTable';
 
+const convexClient = new ConvexReactClient('https://example.convex.cloud');
+
 describe('EmailTableScreen', () => {
-  it('renders the Handsontable email spreadsheet shell', () => {
-    const { container } = render(<EmailTableScreen />);
+  it('renders the contacts table shell', () => {
+    const { container } = render(
+      <ConvexProvider client={convexClient}>
+        <EmailTableScreen />
+      </ConvexProvider>,
+    );
     expect(
       screen.getByRole('heading', { name: 'Email Table' }),
     ).toBeInTheDocument();
     expect(container.querySelector('#email-hot-table')).toBeInTheDocument();
-    expect(screen.getByRole('treegrid')).toBeInTheDocument();
-    expect(
-      screen.getByRole('columnheader', { name: 'Email' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('columnheader', { name: 'Company' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('0 entries')).toBeInTheDocument();
+    // No drafted companies under the test client.
+    expect(screen.getByText('0 companies')).toBeInTheDocument();
   });
 });

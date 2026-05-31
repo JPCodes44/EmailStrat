@@ -135,6 +135,13 @@ export interface EmptySelectionModalProps {
   onDismiss: () => void;
 }
 
+export interface InsufficientCreditsModalProps {
+  /** Body copy; defaults to the generic generation-credits message. */
+  message?: string;
+  onUpgrade?: () => void;
+  onDismiss: () => void;
+}
+
 export interface EmailTemplateModalProps {
   companyName: string;
   /** The generated email text, or null when none exists. */

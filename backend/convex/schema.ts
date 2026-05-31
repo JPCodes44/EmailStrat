@@ -57,6 +57,14 @@ export default defineSchema({
     techStack: v.array(v.string()),
     confidence: v.number(),
     confidenceTone: v.union(v.literal('positive'), v.literal('neutral')),
+    /** Up to three manually-entered recipient emails for the outreach. */
+    email1: v.optional(v.string()),
+    email2: v.optional(v.string()),
+    email3: v.optional(v.string()),
+    /** Send status (read-only for now; a future send flow updates it). */
+    emailStatus: v.optional(
+      v.union(v.literal('Not Sent'), v.literal('Sending'), v.literal('Sent')),
+    ),
     createdAt: v.string(),
   }).index('by_externalId', ['externalId']),
 });

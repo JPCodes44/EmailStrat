@@ -4,6 +4,7 @@ export { ImportWarningModal } from './ImportWarningModal';
 export { DeleteConfirmationModal } from './DeleteConfirmationModal';
 export { GenerationFailedModal } from './GenerationFailedModal';
 export { EmptySelectionModal } from './EmptySelectionModal';
+export { InsufficientCreditsModal } from './InsufficientCreditsModal';
 export { EmailTemplateModal } from './EmailTemplateModal';
 export { ResumePdfModal } from './ResumePdfModal';
 export { ModalOverlay } from './ModalOverlay';

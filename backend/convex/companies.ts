@@ -299,6 +299,7 @@ export const deleteCompanies = mutation({
       if (artifact !== null) {
         await ctx.db.delete(artifact._id);
       }
+      // Contacts are embedded on the company doc, so they go with it.
     }
   },
 });

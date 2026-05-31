@@ -1,0 +1,70 @@
+import { v } from 'convex/values';
+import { mutation, query } from './_generated/server';
+
+/** Rows for the Email Table: one per drafted company. */
+export const listEmailTableRows = query({
+  args: {},
+  handler: async (ctx) => {
+    const companies = await ctx.db.query('companies').collect();
+    const rows: {
+      companyId: string;
+      company: string;
+      email1: string;
+      email2: string;
+      email3: string;
+      status: string;
+      // Carried along for the send flow; not shown as grid columns.
+      emailTemplate: string;
+      resumePdfUrl: string | null;
+    }[] = [];
+
+    for (const company of companies) {
+      const artifact = await ctx.db
+        .query('artifacts')
+        .withIndex('by_companyId', (q) => q.eq('companyId', company.externalId))
+        .unique();
+      // Only drafted companies (those with a completed artifact) appear here.
+      if (artifact?.status !== 'completed') continue;
+
+      rows.push({
+        companyId: company.externalId,
+        company: company.name,
+        email1: company.email1 ?? '',
+        email2: company.email2 ?? '',
+        email3: company.email3 ?? '',
+        status: company.emailStatus ?? 'Not Sent',
+        emailTemplate: artifact.emailTemplate,
+        resumePdfUrl: artifact.resumePdfId
+          ? await ctx.storage.getUrl(artifact.resumePdfId)
+          : null,
+      });
+    }
+
+    rows.sort((a, b) => a.company.localeCompare(b.company));
+    return rows;
+  },
+});
+
+/** Persist a single manually-edited email cell for a company. */
+export const setEmailRow = mutation({
+  args: {
+    companyId: v.string(),
+    email1: v.optional(v.string()),
+    email2: v.optional(v.string()),
+    email3: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const company = await ctx.db
+      .query('companies')
+      .withIndex('by_externalId', (q) => q.eq('externalId', args.companyId))
+      .unique();
+    if (company === null) return;
+
+    // Patch only the fields that were actually provided so unset ones aren't wiped.
+    const patch: { email1?: string; email2?: string; email3?: string } = {};
+    if (args.email1 !== undefined) patch.email1 = args.email1;
+    if (args.email2 !== undefined) patch.email2 = args.email2;
+    if (args.email3 !== undefined) patch.email3 = args.email3;
+    await ctx.db.patch(company._id, patch);
+  },
+});
