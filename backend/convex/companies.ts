@@ -261,6 +261,24 @@ export const listCampaignCompanies = query({
   },
 });
 
+/** Fetch a company's generated artifacts: the email text + a résumé PDF URL. */
+export const getCompanyArtifact = query({
+  args: { companyId: v.string() },
+  handler: async (ctx, { companyId }) => {
+    const artifact = await ctx.db
+      .query('artifacts')
+      .withIndex('by_companyId', (q) => q.eq('companyId', companyId))
+      .unique();
+    if (artifact === null) return null;
+    return {
+      emailTemplate: artifact.emailTemplate,
+      resumePdfUrl: artifact.resumePdfId
+        ? await ctx.storage.getUrl(artifact.resumePdfId)
+        : null,
+    };
+  },
+});
+
 /** Remove companies from the pipeline, along with any generated artifacts. */
 export const deleteCompanies = mutation({
   args: { externalIds: v.array(v.string()) },

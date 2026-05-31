@@ -10,6 +10,7 @@ import type { ModalOverlayProps } from './types';
 export function ModalOverlay({
   ariaLabel,
   onDismiss,
+  size = 'sm',
   children,
 }: ModalOverlayProps) {
   useEffect(() => {
@@ -23,7 +24,7 @@ export function ModalOverlay({
   return createPortal(
     <div className="modalOverlay" onClick={onDismiss}>
       <div
-        className="modalDialog"
+        className={`modalDialog modalDialog-${size}`}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}

@@ -18,7 +18,14 @@
 
 .modalDialog {
   width: 100%;
+}
+
+.modalDialog-sm {
   max-width: 440px;
+}
+
+.modalDialog-lg {
+  max-width: 640px;
 }
 
 /* ------------------------------------------------------------- card */
@@ -455,6 +462,119 @@
 
 .modalCodeSupport .outreachIcon {
   font-size: 14px;
+}
+
+/* ----------------------------------------------------- preview modals */
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #c3c6d7;
+}
+
+.modalHeaderIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #2563eb;
+}
+
+.modalHeaderIcon .outreachIcon {
+  font-size: 24px;
+  color: #ffffff;
+}
+
+.modalHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.modalHeaderTitle {
+  margin: 0;
+  font:
+    600 18px/24px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #191c1e;
+}
+
+.modalHeaderSubtitle {
+  margin: 0;
+  font:
+    400 13px/18px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #434655;
+}
+
+.modalHeaderClose {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #434655;
+  cursor: pointer;
+}
+
+.modalHeaderClose:hover {
+  background: #e0e3e5;
+  color: #191c1e;
+}
+
+.modalPreviewBody {
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 24px;
+  background: #eceef0;
+}
+
+.modalPdfFrame {
+  width: 100%;
+  height: 70vh;
+  border: none;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.modalEmailText {
+  margin: 0;
+  padding: 20px 24px;
+  border-radius: 8px;
+  border: 1px solid #c3c6d7;
+  background: #ffffff;
+  font:
+    400 14px/22px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #191c1e;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.modalPreviewEmpty {
+  margin: 32px auto;
+  font:
+    400 14px/20px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #737686;
 }
 
 /* ------------------------------------------------------------ motion */

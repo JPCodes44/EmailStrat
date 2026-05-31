@@ -17,7 +17,17 @@ export interface ModalOverlayProps {
   ariaLabel: string;
   /** Fired on backdrop click or the Escape key. */
   onDismiss: () => void;
+  /** Dialog width: `sm` (440px, default) or `lg` (640px, preview modals). */
+  size?: 'sm' | 'lg';
   children: ReactNode;
+}
+
+export interface ModalHeaderProps {
+  /** Material Symbols glyph for the square header icon. */
+  icon: string;
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
 }
 
 export interface ModalCardProps {
@@ -123,4 +133,20 @@ export interface EmptySelectionModalProps {
   /** Body copy; defaults to a generic "select at least one" message. */
   message?: string;
   onDismiss: () => void;
+}
+
+export interface EmailTemplateModalProps {
+  companyName: string;
+  /** The generated email text, or null when none exists. */
+  emailText: string | null;
+  loading: boolean;
+  onClose: () => void;
+}
+
+export interface ResumePdfModalProps {
+  companyName: string;
+  /** A URL to the stored résumé PDF, or null when none exists. */
+  pdfUrl: string | null;
+  loading: boolean;
+  onClose: () => void;
 }

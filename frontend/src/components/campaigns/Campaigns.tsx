@@ -7,10 +7,8 @@ import {
   DeleteConfirmationModal,
   GenerationFailedModal,
   EmptySelectionModal,
-  ModalOverlay,
-  ModalCard,
-  ModalActions,
-  ModalButton,
+  EmailTemplateModal,
+  ResumePdfModal,
 } from '../modals';
 import { draftStatusThemes } from './status';
 import type {
@@ -55,6 +53,12 @@ const deleteCompaniesMutation = makeFunctionReference<
   { externalIds: string[] },
   null
 >('companies:deleteCompanies');
+
+const getCompanyArtifactQuery = makeFunctionReference<
+  'query',
+  { companyId: string },
+  { emailTemplate: string; resumePdfUrl: string | null } | null
+>('companies:getCompanyArtifact');
 
 export function GenerateButton({
   onClick,
@@ -498,12 +502,17 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
   const [artifactView, setArtifactView] = useState<{
+    companyId: string;
     name: string;
     kind: 'template' | 'resume';
   } | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
 
   const companyRows = useQuery(listCampaignCompaniesQuery, {});
+  const artifact = useQuery(
+    getCompanyArtifactQuery,
+    artifactView !== null ? { companyId: artifactView.companyId } : 'skip',
+  );
   const importedCompanies = useMemo(() => companyRows ?? [], [companyRows]);
   const generateArtifacts = useAction(generateArtifactsAction);
   const deleteCompanies = useMutation(deleteCompaniesMutation);
@@ -639,7 +648,7 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
 
   const openArtifact = (kind: 'template' | 'resume') => (id: string) => {
     const company = importedCompanies.find((c) => c.id === id);
-    if (company) setArtifactView({ name: company.name, kind });
+    if (company) setArtifactView({ companyId: id, name: company.name, kind });
   };
 
   return (
@@ -713,31 +722,21 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
           onDismiss={() => setNotice(null)}
         />
       ) : null}
-      {artifactView !== null ? (
-        <ModalOverlay
-          ariaLabel={`${
-            artifactView.kind === 'template' ? 'Email template' : 'Resume'
-          } for ${artifactView.name}`}
-          onDismiss={() => setArtifactView(null)}
-        >
-          <ModalCard accent="primary">
-            <div className="modalContent">
-              <h2 className="modalTitle">
-                {artifactView.kind === 'template' ? 'Email Template' : 'Resume'}
-              </h2>
-              <p className="modalBody">
-                {artifactView.name} — viewer coming soon.
-              </p>
-              <ModalActions layout="column">
-                <ModalButton
-                  label="Close"
-                  variant="primary"
-                  onClick={() => setArtifactView(null)}
-                />
-              </ModalActions>
-            </div>
-          </ModalCard>
-        </ModalOverlay>
+      {artifactView !== null && artifactView.kind === 'template' ? (
+        <EmailTemplateModal
+          companyName={artifactView.name}
+          emailText={artifact?.emailTemplate ?? null}
+          loading={artifact === undefined}
+          onClose={() => setArtifactView(null)}
+        />
+      ) : null}
+      {artifactView !== null && artifactView.kind === 'resume' ? (
+        <ResumePdfModal
+          companyName={artifactView.name}
+          pdfUrl={artifact?.resumePdfUrl ?? null}
+          loading={artifact === undefined}
+          onClose={() => setArtifactView(null)}
+        />
       ) : null}
     </div>
   );
