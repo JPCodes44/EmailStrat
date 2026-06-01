@@ -62,6 +62,29 @@ The Vite app also needs the Convex deployment URL in `frontend/.env.local`:
 VITE_CONVEX_URL=https://your-deployment.convex.cloud
 ```
 
+### Gmail sending env
+
+Scheduled outreach is sent through Gmail SMTP from a configured Gmail account.
+Enable 2-Step Verification on the Gmail account, create an App Password, then
+set:
+
+```bash
+cd backend
+bunx convex env set GMAIL_USER "your-address@gmail.com"
+bunx convex env set GMAIL_APP_PASSWORD "your-16-character-app-password"
+```
+
+For safe testing, redirect every scheduled email to one inbox instead of the
+company recipients:
+
+```bash
+bunx convex env set GMAIL_REDIRECT_TO "you@example.com"
+```
+
+Unset `GMAIL_REDIRECT_TO` when you are ready to send to the queued recipient
+addresses. Optionally set `GMAIL_FROM` if you want a custom display sender that
+Gmail allows for the account.
+
 ## Quality checks
 
 ```bash

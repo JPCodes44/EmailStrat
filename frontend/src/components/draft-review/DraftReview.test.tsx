@@ -148,9 +148,10 @@ describe('DraftReviewScreen', () => {
     expect(screen.getByText('Loading…')).toBeInTheDocument();
   });
 
-  it('advances to scheduling when Continue is clicked', async () => {
-    const onContinue = renderScreen();
-    await userEvent.click(screen.getByRole('button', { name: /Continue/ }));
-    expect(onContinue).toHaveBeenCalledTimes(1);
+  it('disables Continue to Send until a company is selected', () => {
+    renderScreen();
+    expect(
+      screen.getByRole('button', { name: /Continue to Send/ }),
+    ).toBeDisabled();
   });
 });

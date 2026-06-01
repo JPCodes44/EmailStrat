@@ -99,6 +99,8 @@ export interface EmailPreviewModalProps {
 }
 
 export interface DraftReviewScreenProps {
-  /** Advances to the Schedule Submission screen. */
-  onContinue?: () => void;
+  /** Advances to Schedule Submission with the checked company ids. */
+  onContinue?: (companyIds: string[]) => void;
+  /** Returns to the Email Table screen. */
+  onBack?: () => void;
 }

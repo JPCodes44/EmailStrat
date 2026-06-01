@@ -6,6 +6,7 @@ import type {
 } from './types';
 
 export const timeOptions: SelectOption[] = [
+  { value: 'now', label: 'Immediately' },
   { value: '09:00', label: '09:00 AM' },
   { value: '12:00', label: '12:00 PM' },
   { value: '15:00', label: '03:00 PM' },

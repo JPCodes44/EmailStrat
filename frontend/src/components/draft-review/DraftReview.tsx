@@ -533,7 +533,10 @@ export function DraftReviewTable({
   );
 }
 
-export function DraftReviewScreen({ onContinue }: DraftReviewScreenProps) {
+export function DraftReviewScreen({
+  onContinue,
+  onBack,
+}: DraftReviewScreenProps) {
   const rows = useQuery(listCompaniesWithEmailsQuery, {});
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
@@ -639,15 +642,16 @@ export function DraftReviewScreen({ onContinue }: DraftReviewScreenProps) {
         }
       />
       <div className="draftFooter">
-        <button className="draftSecondaryButton" type="button">
+        <button className="draftSecondaryButton" type="button" onClick={onBack}>
           Back
         </button>
         <button
           className="draftPrimaryButton"
           type="button"
-          onClick={onContinue}
+          onClick={() => onContinue?.([...selectedIds])}
+          disabled={selectedIds.size === 0}
         >
-          Continue
+          Continue to Send
           <Icon name="arrow_forward" size={18} />
         </button>
       </div>

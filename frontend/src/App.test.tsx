@@ -44,17 +44,11 @@ describe('App navigation', () => {
       screen.getByRole('heading', { name: 'Review Company Email Groups' }),
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: /Continue/ }));
+    // Continue to Send stays disabled until a company is selected (no live data
+    // under the test client, so nothing is selectable here).
     expect(
-      screen.getByRole('heading', { name: 'Schedule Submission' }),
-    ).toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Back to Draft Review' }),
-    );
-    expect(
-      screen.getByRole('heading', { name: 'Review Company Email Groups' }),
-    ).toBeInTheDocument();
+      screen.getByRole('button', { name: /Continue to Send/ }),
+    ).toBeDisabled();
 
     await userEvent.click(
       screen.getByRole('button', { name: /Generation Jobs/ }),

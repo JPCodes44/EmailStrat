@@ -65,7 +65,13 @@ export default defineSchema({
     email3: v.optional(v.string()),
     /** Send status (read-only for now; a future send flow updates it). */
     emailStatus: v.optional(
-      v.union(v.literal('Not Sent'), v.literal('Sending'), v.literal('Sent')),
+      v.union(
+        v.literal('Not Sent'),
+        v.literal('Drafted'),
+        v.literal('Sending'),
+        v.literal('Sent'),
+        v.literal('Failed'),
+      ),
     ),
     createdAt: v.string(),
   }).index('by_externalId', ['externalId']),
@@ -89,4 +95,35 @@ export default defineSchema({
     freeResetAt: v.optional(v.string()),
     updatedAt: v.string(),
   }).index('by_provider', ['provider']),
+  /**
+   * The outreach send queue: one row per recipient email to dispatch. Populated
+   * by "Schedule Outreach" and drained by Convex's scheduler at each item's
+   * `scheduledAt`. Company-level visible state lives on `companies.emailStatus`.
+   */
+  sendQueue: defineTable({
+    /** Groups one "Schedule Outreach" submission. */
+    batchId: v.string(),
+    companyId: v.string(),
+    /** Denormalized company name for display. */
+    company: v.string(),
+    /** A single recipient address. */
+    to: v.string(),
+    subject: v.string(),
+    status: v.union(
+      v.literal('queued'),
+      v.literal('drafted'),
+      v.literal('sent'),
+      v.literal('failed'),
+    ),
+    /** ISO timestamp at which this item dispatches. */
+    scheduledAt: v.string(),
+    createdAt: v.string(),
+    outlookDraftId: v.optional(v.string()),
+    draftedAt: v.optional(v.string()),
+    sentAt: v.optional(v.string()),
+    error: v.optional(v.string()),
+  })
+    .index('by_company', ['companyId'])
+    .index('by_batch', ['batchId'])
+    .index('by_status', ['status']),
 });

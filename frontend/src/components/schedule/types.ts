@@ -17,6 +17,7 @@ export interface TargetEntity {
   initial: string;
   segment: string;
   contacts: number;
+  status?: string;
 }
 
 /** Aggregate counters shown in the dispatch summary panel. */
@@ -33,12 +34,26 @@ export interface SelectOption {
 }
 
 export interface ScheduleSubmissionScreenProps {
+  /** Companies checked on Draft Review, to be queued for sending. */
+  companyIds?: string[];
   /** Returns to the Draft Review screen (Back link and Cancel). */
   onBack?: () => void;
 }
 
 export interface ScheduleHeaderProps {
   onBack?: () => void;
+  /** Queues the outreach for the chosen schedule. */
+  onSchedule?: () => void;
+  /** Queues the outreach as app drafts without scheduling a provider send. */
+  onScheduleDrafts?: () => void;
+  /** True while the enqueue mutation is in flight. */
+  scheduling?: boolean;
+  /** True while draft creation is in flight. */
+  drafting?: boolean;
+  /** False when there are no companies to schedule. */
+  canSchedule?: boolean;
+  /** False when there are no companies to draft. */
+  canDraft?: boolean;
 }
 
 export interface SchedulingOptionsProps {
@@ -60,6 +75,12 @@ export interface DeliveryOptionCardProps {
 
 export interface TargetEntitiesProps {
   entities: TargetEntity[];
+  selectedIds?: Set<string>;
+  onToggleSelected?: (companyId: string) => void;
+  onToggleAll?: () => void;
+  onUnschedule?: () => void;
+  unscheduling?: boolean;
+  canUnschedule?: boolean;
 }
 
 export interface DispatchSummaryProps {

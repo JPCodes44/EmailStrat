@@ -605,8 +605,13 @@
   color: #ffffff;
 }
 
-.draftPrimaryButton:hover {
+.draftPrimaryButton:hover:not(:disabled) {
   background: #004ac6;
+}
+
+.draftPrimaryButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .draftSecondaryButton {

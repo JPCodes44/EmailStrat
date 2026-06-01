@@ -34,6 +34,8 @@ const convex = new ConvexReactClient(convexUrl);
 /** App root — swaps between implemented Outreach OS screens. */
 export function App() {
   const [activePage, setActivePage] = useState(companyPageId);
+  // Companies checked on Draft Review, carried to the Schedule Submission screen.
+  const [sendCompanyIds, setSendCompanyIds] = useState<string[]>([]);
 
   return (
     <ConvexProvider client={convex}>
@@ -67,10 +69,15 @@ export function App() {
                 <EmailTableScreen />
               ) : activePage === draftsPageId ? (
                 <DraftReviewScreen
-                  onContinue={() => setActivePage(schedulePageId)}
+                  onContinue={(ids) => {
+                    setSendCompanyIds(ids);
+                    setActivePage(schedulePageId);
+                  }}
+                  onBack={() => setActivePage(emailTablePageId)}
                 />
               ) : activePage === schedulePageId ? (
                 <ScheduleSubmissionScreen
+                  companyIds={sendCompanyIds}
                   onBack={() => setActivePage(draftsPageId)}
                 />
               ) : (

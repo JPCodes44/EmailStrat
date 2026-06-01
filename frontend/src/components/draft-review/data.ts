@@ -9,8 +9,10 @@ export interface SelectOption {
 export const statusOptions: SelectOption[] = [
   { value: 'all', label: 'All Statuses' },
   { value: 'Not Sent', label: 'Not Sent' },
+  { value: 'Drafted', label: 'Drafted' },
   { value: 'Sending', label: 'Sending' },
   { value: 'Sent', label: 'Sent' },
+  { value: 'Failed', label: 'Failed' },
 ];
 
 /**
