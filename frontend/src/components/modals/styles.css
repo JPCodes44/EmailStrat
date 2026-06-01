@@ -28,6 +28,10 @@
   max-width: 640px;
 }
 
+.modalDialog-xl {
+  max-width: 1120px;
+}
+
 /* ------------------------------------------------------------- card */
 
 .modalCard {
@@ -615,4 +619,298 @@
   .modalStatusDot {
     animation: none;
   }
+}
+
+/* -------------------------------------------- email draft carousel */
+
+.emailCarousel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 580px;
+}
+
+.emailCarouselTrack {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+  /* Clip the peek cards horizontally, but let the active card's badge show
+     above the cards (overflow:hidden would clip it vertically too). */
+  overflow-x: clip;
+  overflow-y: visible;
+  padding: 18px 8px;
+}
+
+.emailCarouselNav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  border: 1px solid #c3c6d7;
+  background: #ffffff;
+  color: #191c1e;
+  box-shadow: 0 8px 16px rgba(27, 39, 51, 0.18);
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.emailCarouselNav:hover:not(:disabled) {
+  background: #e6e8ea;
+}
+
+.emailCarouselNav:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.emailCarouselNav-prev {
+  left: 0;
+}
+
+.emailCarouselNav-next {
+  right: 0;
+}
+
+.emailCarouselClose {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  border: 1px solid #c3c6d7;
+  background: #eceef0;
+  color: #434655;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.emailCarouselClose:hover {
+  background: #e0e3e5;
+}
+
+/* Invisible placeholder so the active card stays centered when an adjacent
+   peek card is missing (at the first/last draft). */
+.emailCardSpacer {
+  flex: none;
+  width: 440px;
+}
+
+.emailCard {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 480px;
+  border: 1px solid #c3c6d7;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.emailCard-peek {
+  width: 440px;
+  height: 500px;
+  overflow: hidden;
+  opacity: 0.55;
+  transform: scale(0.95);
+  box-shadow: 0 1px 2px rgba(27, 39, 51, 0.06);
+}
+
+.emailCard-active {
+  position: relative;
+  width: 560px;
+  height: 560px;
+  border-color: rgba(0, 74, 198, 0.35);
+  box-shadow:
+    0 0 0 4px rgba(37, 99, 235, 0.15),
+    0 24px 48px rgba(27, 39, 51, 0.24);
+}
+
+.emailCardBadge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  z-index: 5;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: #004ac6;
+  color: #ffffff;
+  font:
+    500 12px/16px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(27, 39, 51, 0.2);
+}
+
+.emailCardHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 24px 28px;
+  border-bottom: 1px solid #c3c6d7;
+  border-radius: 12px 12px 0 0;
+  background: #f7f9fb;
+}
+
+.emailCard-active .emailCardHeader {
+  padding-top: 32px;
+}
+
+.emailCardField {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+}
+
+/* Separator line between stacked header fields (To / Subject). */
+.emailCardField + .emailCardField {
+  border-top: 1px solid #e0e3e5;
+}
+
+.emailCardLabel {
+  flex: 0 0 56px;
+  padding-top: 1px;
+  font:
+    500 12px/16px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: 0.05em;
+  color: #505f76;
+}
+
+.emailCardTo {
+  font:
+    500 14px/20px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #191c1e;
+  word-break: break-all;
+}
+
+.emailCardSubject {
+  font:
+    500 14px/20px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #191c1e;
+}
+
+.emailCardAttachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  margin-top: 16px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #c3c6d7;
+  background: #ffffff;
+  font:
+    500 12px/16px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #434655;
+}
+
+.emailCardBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px;
+  font:
+    400 14px/26px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #434655;
+}
+
+.emailCardParagraph {
+  margin: 0 0 20px;
+}
+
+.emailCardParagraph:last-child {
+  margin-bottom: 0;
+}
+
+.emailCardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-top: 1px solid #c3c6d7;
+  border-radius: 0 0 12px 12px;
+  background: #f7f9fb;
+}
+
+.emailCardFooterRight {
+  display: flex;
+  gap: 8px;
+}
+
+.emailCardBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #c3c6d7;
+  background: #ffffff;
+  font:
+    500 12px/16px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: 0.05em;
+  color: #191c1e;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.emailCardBtn-discard {
+  color: #434655;
+}
+
+.emailCardBtn-discard:hover {
+  border-color: #ffdad6;
+  background: #ffdad6;
+  color: #93000a;
+}
+
+.emailCardBtn-edit:hover {
+  background: #eceef0;
+}
+
+.emailCardBtn-approve {
+  padding: 8px 24px;
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(27, 39, 51, 0.12);
+}
+
+.emailCardBtn-approve:hover {
+  background: #003ea8;
 }

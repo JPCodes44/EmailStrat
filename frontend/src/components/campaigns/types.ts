@@ -7,6 +7,8 @@ export interface CampaignCompany {
   industry: string;
   score: number;
   status: DraftStatus;
+  /** Generated email subject line; empty/absent until drafted. */
+  subject?: string;
   selected?: boolean;
 }
 

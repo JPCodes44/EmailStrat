@@ -10,6 +10,7 @@ export const MODEL_PRICING: Record<
   'gpt-4o-mini': { inputPerM: 0.15, outputPerM: 0.6 },
   'gpt-5.4-mini': { inputPerM: 0.75, outputPerM: 4.5 },
   'gemini-2.5-flash': { inputPerM: 0.3, outputPerM: 2.5 },
+  'gemini-2.5-flash-lite': { inputPerM: 0.1, outputPerM: 0.4 },
 };
 
 /**

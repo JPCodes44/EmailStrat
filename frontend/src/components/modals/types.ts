@@ -17,8 +17,11 @@ export interface ModalOverlayProps {
   ariaLabel: string;
   /** Fired on backdrop click or the Escape key. */
   onDismiss: () => void;
-  /** Dialog width: `sm` (440px, default) or `lg` (640px, preview modals). */
-  size?: 'sm' | 'lg';
+  /**
+   * Dialog width: `sm` (440px, default), `lg` (640px, preview modals), or `xl`
+   * (1120px, the email-draft carousel).
+   */
+  size?: 'sm' | 'lg' | 'xl';
   children: ReactNode;
 }
 
@@ -156,4 +159,28 @@ export interface ResumePdfModalProps {
   pdfUrl: string | null;
   loading: boolean;
   onClose: () => void;
+}
+
+/** One email draft shown as a card in the review carousel. */
+export interface EmailDraft {
+  id: string;
+  /** Recipient address. */
+  to: string;
+  subject: string;
+  /** Body paragraphs, rendered in order. */
+  body: string[];
+  /** Optional attached file, shown as a chip in the card header. */
+  attachmentName?: string;
+}
+
+export interface EmailDraftCarouselModalProps {
+  drafts: EmailDraft[];
+  /** Index of the draft currently centered/active. */
+  activeIndex: number;
+  onPrev: () => void;
+  onNext: () => void;
+  onClose: () => void;
+  onDiscard: (id: string) => void;
+  onEdit: (id: string) => void;
+  onApprove: (id: string) => void;
 }

@@ -75,6 +75,70 @@ export const listCompaniesWithEmails = query({
   },
 });
 
+/** Split a stored email template into a fallback subject line and body paragraphs. */
+function parseEmailTemplate(template: string): {
+  subjectLine: string | null;
+  body: string[];
+} {
+  const trimmed = template.trim();
+  const lines = trimmed.split('\n');
+  let subjectLine: string | null = null;
+  let rest = trimmed;
+  const first = lines[0]?.trim() ?? '';
+  if (/^subject:/i.test(first)) {
+    subjectLine = first.replace(/^subject:\s*/i, '').trim();
+    rest = lines.slice(1).join('\n').trim();
+  }
+  const body = rest
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter((paragraph) => paragraph.length > 0);
+  return { subjectLine, body };
+}
+
+/**
+ * The clicked company's email cards for the review carousel — one per non-empty
+ * recipient email (To = a single address), each carrying the generated subject,
+ * body, and résumé attachment. Subscribed on row click, torn down on close.
+ */
+export const getCompanyEmailDrafts = query({
+  args: { companyId: v.string() },
+  handler: async (ctx, { companyId }) => {
+    const company = await ctx.db
+      .query('companies')
+      .withIndex('by_externalId', (q) => q.eq('externalId', companyId))
+      .unique();
+    if (company === null) return [];
+
+    const artifact = await ctx.db
+      .query('artifacts')
+      .withIndex('by_companyId', (q) => q.eq('companyId', companyId))
+      .unique();
+
+    const { subjectLine, body } = parseEmailTemplate(
+      artifact?.emailTemplate ?? '',
+    );
+    const subject =
+      artifact?.emailSubject ?? subjectLine ?? `Outreach to ${company.name}`;
+    const attachmentName =
+      artifact?.resumePdfId !== undefined
+        ? `${company.name}_Resume.pdf`
+        : undefined;
+
+    const emails = [company.email1, company.email2, company.email3]
+      .map((email) => email?.trim() ?? '')
+      .filter((email) => email.length > 0);
+
+    return emails.map((to, index) => ({
+      id: `${companyId}-${index}`,
+      to,
+      subject,
+      body,
+      ...(attachmentName !== undefined ? { attachmentName } : {}),
+    }));
+  },
+});
+
 /** Persist a single manually-edited email cell for a company. */
 export const setEmailRow = mutation({
   args: {

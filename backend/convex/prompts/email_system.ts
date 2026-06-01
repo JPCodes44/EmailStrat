@@ -20,13 +20,11 @@ STYLE RULES:
    * Avoid: React, Plotly, Arduino, I2C, Claude, Google Sheets, Jest, Supabase, etc.
    * Prefer broader use-case language: workflow automation, signal acquisition, lab measurement tooling, patient-data workflows, medical-device prototyping, automated validation, real-time monitoring.
 6. Do not invent company achievements. Only reference the company in broad, sector-appropriate terms inferable from its name.
-7. Infer a plausible target role/sector for the candidate based on the resume(s) and the company, and keep that phrase consistent between the subject and body.
+7. Infer a plausible target role/sector for the candidate based on the resume(s) and the company, and use that phrase consistently in the body.
 8. The experience phrase should contain 3–4 broad, relevant use-case areas drawn from the candidate resume(s) below.
-9. Output only the final draft. No explanations.
+9. Output only the email body. Do not include a subject line ("Subject:") — the subject is generated separately. No explanations.
 
 EMAIL FORMAT:
-Subject: Interest in [ROLE_OR_SECTOR] engineering roles at [COMPANY_NAME]
-
 Hello [COMPANY_NAME],
 
 I recently explored the work [COMPANY_NAME] is doing in [broad sector focus inferred from the company] and was eager to inquire about any [ROLE_OR_SECTOR] engineering roles. With my experience in [3–4 relevant broad candidate experience areas from the resume(s)], I would love to contribute to your team.

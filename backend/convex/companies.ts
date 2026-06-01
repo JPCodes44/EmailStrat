@@ -1,10 +1,10 @@
-import { GoogleGenAI } from '@google/genai';
 import { v } from 'convex/values';
 // `./_generated/server` is produced by `bunx convex dev`. Until you run it once,
 // this import will not resolve — that is expected for a fresh checkout.
 import { action, mutation, query } from './_generated/server';
 import { internal } from './_generated/api';
 import { computeCostUsd, GEMINI_GROUNDING_EST_USD } from './pricing';
+import { runGeminiWithFallback } from './gemini';
 
 interface ResearchArgs {
   keywords?: string;
@@ -40,8 +40,6 @@ interface CompanyResearchResponse {
   companies: CompanyResearchResult[];
   total: number;
 }
-
-const maxGeminiAttempts = 3;
 
 function getDeploymentEnv(): Record<string, string | undefined> {
   const runtime = globalThis as unknown as {
@@ -92,107 +90,39 @@ function parseResearchResponse(
   return parsed.companies;
 }
 
-/** Transient server errors (503/UNAVAILABLE) — worth retrying the SAME key. */
-function isTransientGeminiError(error: unknown): boolean {
-  if (error instanceof Error) {
-    return (
-      error.message.includes('"code":503') ||
-      error.message.includes('"status":"UNAVAILABLE"')
-    );
-  }
-  return false;
-}
-
-/** Quota/rate-limit exhaustion (429/RESOURCE_EXHAUSTED) — fall back to paid key. */
-function isQuotaError(error: unknown): boolean {
-  if (error instanceof Error) {
-    return (
-      error.message.includes('"code":429') ||
-      error.message.includes('"status":"RESOURCE_EXHAUSTED"')
-    );
-  }
-  return false;
-}
-
-function wait(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
-/** A research call's text plus the token usage used for cost estimation. */
-interface ResearchResult {
-  text: string | undefined;
-  promptTokens: number;
-  completionTokens: number;
-}
-
-/**
- * Run one grounded Gemini research call with a given API key, retrying only on
- * transient (503) errors. Quota (429) errors bubble up so the caller can decide
- * whether to fall back to a different key.
- */
-async function requestResearch(
-  apiKey: string,
-  model: string,
-  args: ResearchArgs,
-): Promise<ResearchResult> {
-  const gemini = new GoogleGenAI({ apiKey });
-
-  for (let attempt = 1; attempt <= maxGeminiAttempts; attempt += 1) {
-    try {
-      const response = await gemini.models.generateContent({
-        model,
-        contents: JSON.stringify({
-          role: 'company_research_request',
-          instruction:
-            'Research companies for outbound job-search outreach. Use Google Search grounding. Find companies that match the submitted criteria. Do not include blacklist logic. Return raw JSON only, with no markdown fences, no citations, and no prose.',
-          researchCriteria: args,
-          request: `Find ${args.limit} companies.`,
-          responseShape: {
-            companies: [
-              {
-                name: 'string',
-                domain: 'string',
-                industry: 'string',
-                location: 'string',
-                size: 'string',
-                techStack: ['string'],
-                confidence: 'number from 0 to 100',
-              },
-            ],
-          },
-          outputRequirements: {
-            includeFields: [
-              'name',
-              'domain',
-              'industry',
-              'location',
-              'size',
-              'techStack',
-              'confidence',
-            ],
-          },
-        }),
-        // Google Search grounding for live, current company discovery.
-        config: {
-          tools: [{ googleSearch: {} }],
+/** Build the grounded research request payload sent to Gemini. */
+function buildResearchContents(args: ResearchArgs): string {
+  return JSON.stringify({
+    role: 'company_research_request',
+    instruction:
+      'Research companies for outbound job-search outreach. Use Google Search grounding. Find companies that match the submitted criteria. Do not include blacklist logic. Return raw JSON only, with no markdown fences, no citations, and no prose.',
+    researchCriteria: args,
+    request: `Find ${args.limit} companies.`,
+    responseShape: {
+      companies: [
+        {
+          name: 'string',
+          domain: 'string',
+          industry: 'string',
+          location: 'string',
+          size: 'string',
+          techStack: ['string'],
+          confidence: 'number from 0 to 100',
         },
-      });
-      const usage = response.usageMetadata;
-      return {
-        text: response.text,
-        promptTokens: usage?.promptTokenCount ?? 0,
-        completionTokens: usage?.candidatesTokenCount ?? 0,
-      };
-    } catch (error) {
-      if (attempt === maxGeminiAttempts || !isTransientGeminiError(error)) {
-        throw error;
-      }
-      await wait(500 * attempt);
-    }
-  }
-  return { text: undefined, promptTokens: 0, completionTokens: 0 };
+      ],
+    },
+    outputRequirements: {
+      includeFields: [
+        'name',
+        'domain',
+        'industry',
+        'location',
+        'size',
+        'techStack',
+        'confidence',
+      ],
+    },
+  });
 }
 
 /** Research companies from the discovery filters with one grounded Gemini call. */
@@ -218,23 +148,22 @@ export const research = action({
     const paidKey = env.GEMINI_API_KEY_PAID;
     const model = env.GEMINI_RESEARCH_MODEL ?? 'gemini-2.5-flash';
 
-    let result: ResearchResult;
-    let usedFreeKey = true;
-    try {
-      result = await requestResearch(freeKey, model, args);
-    } catch (error) {
-      if (isQuotaError(error) && paidKey !== undefined && paidKey.length > 0) {
-        usedFreeKey = false;
-        result = await requestResearch(paidKey, model, args);
-      } else {
-        throw error;
-      }
-    }
+    // Free key first, falling back to the paid key on quota exhaustion.
+    const result = await runGeminiWithFallback({
+      freeKey,
+      paidKey,
+      params: {
+        model,
+        contents: buildResearchContents(args),
+        // Google Search grounding for live, current company discovery.
+        config: { tools: [{ googleSearch: {} }] },
+      },
+    });
 
     // Update the navbar balance tracker (best-effort). The free key only burns
     // a daily request; the paid key drains estimated dollars (tokens + grounding).
     try {
-      if (usedFreeKey) {
+      if (result.usedFreeKey) {
         await ctx.runMutation(internal.usageDb.recordUsage, {
           provider: 'gemini',
           usedFreeGemini: true,
@@ -341,9 +270,26 @@ export const listCampaignCompanies = query({
             artifact?.status === 'completed'
               ? ('drafted' as const)
               : ('not-drafted' as const),
+          subject: artifact?.emailSubject ?? '',
         };
       }),
     );
+  },
+});
+
+/** Clear the generated subject line on the given companies' artifacts. */
+export const clearSubjects = mutation({
+  args: { externalIds: v.array(v.string()) },
+  handler: async (ctx, { externalIds }) => {
+    for (const externalId of externalIds) {
+      const artifact = await ctx.db
+        .query('artifacts')
+        .withIndex('by_companyId', (q) => q.eq('companyId', externalId))
+        .unique();
+      if (artifact !== null && artifact.emailSubject !== undefined) {
+        await ctx.db.patch(artifact._id, { emailSubject: undefined });
+      }
+    }
   },
 });
 

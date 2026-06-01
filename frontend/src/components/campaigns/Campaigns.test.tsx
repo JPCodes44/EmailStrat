@@ -54,6 +54,10 @@ describe('CampaignHeader', () => {
         onStatusFilterChange={vi.fn()}
         onGenerate={vi.fn()}
         onDelete={vi.fn()}
+        onClearSubject={vi.fn()}
+        onGenerateSubjects={vi.fn()}
+        subjectsLoading={false}
+        clearableCount={0}
         selectedCount={0}
       />,
     );
@@ -74,6 +78,10 @@ describe('CampaignHeader', () => {
         onStatusFilterChange={onStatusFilterChange}
         onGenerate={vi.fn()}
         onDelete={vi.fn()}
+        onClearSubject={vi.fn()}
+        onGenerateSubjects={vi.fn()}
+        subjectsLoading={false}
+        clearableCount={0}
         selectedCount={0}
       />,
     );
@@ -91,6 +99,10 @@ describe('CampaignHeader', () => {
         onStatusFilterChange={vi.fn()}
         onGenerate={vi.fn()}
         onDelete={onDelete}
+        onClearSubject={vi.fn()}
+        onGenerateSubjects={vi.fn()}
+        subjectsLoading={false}
+        clearableCount={0}
         selectedCount={2}
       />,
     );
@@ -107,6 +119,10 @@ describe('CampaignHeader', () => {
         onStatusFilterChange={vi.fn()}
         onGenerate={vi.fn()}
         onDelete={vi.fn()}
+        onClearSubject={vi.fn()}
+        onGenerateSubjects={vi.fn()}
+        subjectsLoading={false}
+        clearableCount={0}
         selectedCount={0}
       />,
     );

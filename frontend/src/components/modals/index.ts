@@ -7,6 +7,7 @@ export { EmptySelectionModal } from './EmptySelectionModal';
 export { InsufficientCreditsModal } from './InsufficientCreditsModal';
 export { EmailTemplateModal } from './EmailTemplateModal';
 export { ResumePdfModal } from './ResumePdfModal';
+export { EmailDraftCarouselModal } from './EmailDraftCarouselModal';
 export { ModalOverlay } from './ModalOverlay';
 export { ModalCard } from './ModalCard';
 export { ModalHeader } from './ModalHeader';

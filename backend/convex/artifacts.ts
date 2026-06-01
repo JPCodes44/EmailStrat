@@ -2,16 +2,23 @@
 
 import { v } from 'convex/values';
 import OpenAI from 'openai';
-import { action } from './_generated/server';
+import { action, type ActionCtx } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { EMAIL_SYSTEM_PROMPT } from './prompts/email_system';
 import { RESUME_SYSTEM_PROMPT } from './prompts/resume_system';
+import { SUBJECT_SYSTEM_PROMPT } from './prompts/subject_system';
 import { CANDIDATE_RESUMES } from './resumes';
 import { computeCostUsd } from './pricing';
+import { runGeminiWithFallback } from './gemini';
 
 const EMAIL_MODEL = 'gpt-4o-mini';
 const RESUME_MODEL = 'gpt-5.4-mini';
+/** Cheapest Gemini tier for subject generation; overridable via env. */
+const SUBJECT_MODEL =
+  process.env.GEMINI_SUBJECT_MODEL ?? 'gemini-2.5-flash-lite';
+/** Lightest GPT model, used as the final subject fallback. */
+const SUBJECT_FALLBACK_MODEL = 'gpt-4o-mini';
 
 /** Strip any markdown code fences a model wraps the LaTeX in. */
 function stripCodeFences(text: string): string {
@@ -37,6 +44,94 @@ async function compileLatexToPdf(latex: string): Promise<ArrayBuffer> {
     );
   }
   return res.arrayBuffer();
+}
+
+/** Normalize a model's subject output to a single clean line. */
+function cleanSubject(text: string): string {
+  const firstLine =
+    text
+      .trim()
+      .replace(/^subject:\s*/i, '')
+      .replace(/^["']|["']$/g, '')
+      .split('\n')[0] ?? '';
+  return firstLine.trim();
+}
+
+/**
+ * Generate a subject line from the email body. Tiered + best-effort:
+ * Gemini free key → Gemini paid key → lightest GPT model. Returns undefined if
+ * every tier fails, so generation never breaks on a missing subject.
+ */
+async function generateSubject(
+  ctx: ActionCtx,
+  openai: OpenAI,
+  emailTemplate: string,
+): Promise<string | undefined> {
+  const freeKey = process.env.GEMINI_API_KEY;
+  if (freeKey) {
+    try {
+      const result = await runGeminiWithFallback({
+        freeKey,
+        paidKey: process.env.GEMINI_API_KEY_PAID,
+        params: {
+          model: SUBJECT_MODEL,
+          contents: emailTemplate,
+          config: { systemInstruction: SUBJECT_SYSTEM_PROMPT },
+        },
+      });
+      if (result.text !== undefined && result.text.trim() !== '') {
+        try {
+          await ctx.runMutation(
+            internal.usageDb.recordUsage,
+            result.usedFreeKey
+              ? { provider: 'gemini', usedFreeGemini: true }
+              : {
+                  provider: 'gemini',
+                  costUsd: computeCostUsd(
+                    SUBJECT_MODEL,
+                    result.promptTokens,
+                    result.completionTokens,
+                  ),
+                },
+          );
+        } catch (trackErr) {
+          console.error('Subject usage tracking failed:', trackErr);
+        }
+        return cleanSubject(result.text);
+      }
+    } catch (geminiErr) {
+      console.error('Gemini subject failed, falling back to GPT:', geminiErr);
+    }
+  }
+
+  // Final fallback: the lightest GPT model.
+  try {
+    const res = await openai.chat.completions.create({
+      model: SUBJECT_FALLBACK_MODEL,
+      messages: [
+        { role: 'system', content: SUBJECT_SYSTEM_PROMPT },
+        { role: 'user', content: emailTemplate },
+      ],
+    });
+    const text = res.choices[0]?.message.content ?? '';
+    if (text.trim() === '') return undefined;
+    try {
+      await ctx.runMutation(internal.usageDb.recordUsage, {
+        provider: 'openai',
+        costUsd: computeCostUsd(
+          SUBJECT_FALLBACK_MODEL,
+          res.usage?.prompt_tokens ?? 0,
+          res.usage?.completion_tokens ?? 0,
+        ),
+      });
+    } catch (trackErr) {
+      console.error('Subject usage tracking failed:', trackErr);
+    }
+    return cleanSubject(text);
+  } catch (gptErr) {
+    console.error('GPT subject fallback failed:', gptErr);
+    return undefined;
+  }
 }
 
 /** Batch generate artifacts (email + résumé) for multiple companies. */
@@ -111,9 +206,14 @@ export const generateForCompanies = action({
           console.error(`PDF compile failed for ${company.name}:`, err);
         }
 
+        // 4b. Generate a subject line from the email body (best-effort:
+        //     Gemini free → Gemini paid → lightest GPT; undefined if all fail).
+        const emailSubject = await generateSubject(ctx, openai, emailTemplate);
+
         await ctx.runMutation(internal.artifactsDb.saveResult, {
           companyId: company.id,
           emailTemplate,
+          ...(emailSubject ? { emailSubject } : {}),
           resumeLatex,
           ...(resumePdfId ? { resumePdfId } : {}),
           status: 'completed',
@@ -151,6 +251,49 @@ export const generateForCompanies = action({
           resumeLatex: '',
           status: 'failed',
         });
+      }
+    }
+  },
+});
+
+/**
+ * Regenerate just the email subject for already-drafted companies, reusing
+ * `generateSubject` (Gemini → GPT) on each company's stored email template.
+ */
+export const generateSubjectsForCompanies = action({
+  args: { companyIds: v.array(v.string()) },
+  handler: async (ctx, { companyIds }) => {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY is not configured in Convex dashboard.');
+    }
+    const openai = new OpenAI({ apiKey });
+
+    for (const companyId of companyIds) {
+      try {
+        const artifact = await ctx.runQuery(internal.artifactsDb.getArtifact, {
+          companyId,
+        });
+        if (
+          artifact === null ||
+          artifact.status !== 'completed' ||
+          artifact.emailTemplate.trim() === ''
+        ) {
+          continue;
+        }
+        const emailSubject = await generateSubject(
+          ctx,
+          openai,
+          artifact.emailTemplate,
+        );
+        if (emailSubject !== undefined) {
+          await ctx.runMutation(internal.artifactsDb.setSubject, {
+            companyId,
+            emailSubject,
+          });
+        }
+      } catch (error) {
+        console.error(`Subject generation failed for ${companyId}:`, error);
       }
     }
   },

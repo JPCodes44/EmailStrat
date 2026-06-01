@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { useQuery } from 'convex/react';
 import { makeFunctionReference } from 'convex/server';
 import { Icon } from '../outreach/Common';
+import { EmailDraftCarouselModal } from '../modals/EmailDraftCarouselModal';
+import type { EmailDraft } from '../modals/types';
 import { statusOptions } from './data';
 import type {
   CardMenuProps,
@@ -379,6 +381,13 @@ const listCompaniesWithEmailsQuery = makeFunctionReference<
   CompanyEmailRow[]
 >('emails:listCompaniesWithEmails');
 
+// The clicked company's email cards — fetched only while a row is active.
+const getCompanyEmailDraftsQuery = makeFunctionReference<
+  'query',
+  { companyId: string },
+  EmailDraft[]
+>('emails:getCompanyEmailDrafts');
+
 /** Show an email address, or a dash when that slot is empty. */
 function emailCell(value: string): string {
   return value.trim().length > 0 ? value : '—';
@@ -529,7 +538,26 @@ export function DraftReviewScreen({ onContinue }: DraftReviewScreenProps) {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  // The clicked row: highlights it AND opens the review carousel. Closing the
+  // modal clears it, so the highlight disappears as the modal fades away.
   const [activeId, setActiveId] = useState<string | undefined>(undefined);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+
+  // Fetch the active company's email cards only while a row is open; switching
+  // to 'skip' on close tears the subscription down (the requested cleanup).
+  const draftCards = useQuery(
+    getCompanyEmailDraftsQuery,
+    activeId !== undefined ? { companyId: activeId } : 'skip',
+  );
+
+  function openRow(id: string) {
+    setActiveId(id);
+    setCarouselIndex(0);
+  }
+
+  function closeModal() {
+    setActiveId(undefined);
+  }
 
   function toggleSelected(id: string) {
     setSelectedIds((current) => {
@@ -601,7 +629,7 @@ export function DraftReviewScreen({ onContinue }: DraftReviewScreenProps) {
         selectedIds={selectedIds}
         allSelected={allSelected}
         activeId={activeId}
-        onSelect={setActiveId}
+        onSelect={openRow}
         onToggleSelected={toggleSelected}
         onToggleAll={() =>
           toggleSelectAll(
@@ -623,6 +651,22 @@ export function DraftReviewScreen({ onContinue }: DraftReviewScreenProps) {
           <Icon name="arrow_forward" size={18} />
         </button>
       </div>
+      {activeId !== undefined ? (
+        <EmailDraftCarouselModal
+          drafts={draftCards ?? []}
+          activeIndex={carouselIndex}
+          onPrev={() => setCarouselIndex((index) => Math.max(0, index - 1))}
+          onNext={() =>
+            setCarouselIndex((index) =>
+              Math.min((draftCards?.length ?? 1) - 1, index + 1),
+            )
+          }
+          onClose={closeModal}
+          onDiscard={closeModal}
+          onEdit={() => undefined}
+          onApprove={closeModal}
+        />
+      ) : null}
     </section>
   );
 }

@@ -33,6 +33,12 @@ const generateArtifactsAction = makeFunctionReference<
   void
 >('artifacts:generateForCompanies');
 
+const generateSubjectsAction = makeFunctionReference<
+  'action',
+  { companyIds: string[] },
+  void
+>('artifacts:generateSubjectsForCompanies');
+
 /** A persisted pipeline company as returned by `companies:listCampaignCompanies`. */
 interface CampaignCompanyRow {
   id: string;
@@ -40,6 +46,7 @@ interface CampaignCompanyRow {
   industry: string;
   confidence: number;
   status: DraftStatus;
+  subject: string;
 }
 
 const listCampaignCompaniesQuery = makeFunctionReference<
@@ -53,6 +60,12 @@ const deleteCompaniesMutation = makeFunctionReference<
   { externalIds: string[] },
   null
 >('companies:deleteCompanies');
+
+const clearSubjectsMutation = makeFunctionReference<
+  'mutation',
+  { externalIds: string[] },
+  null
+>('companies:clearSubjects');
 
 const getCompanyArtifactQuery = makeFunctionReference<
   'query',
@@ -95,10 +108,18 @@ export function CampaignHeader({
   onStatusFilterChange,
   onGenerate,
   onDelete,
+  onClearSubject,
+  onGenerateSubjects,
+  subjectsLoading,
+  clearableCount,
   selectedCount,
 }: CampaignHeaderProps & {
   onGenerate: () => void;
   onDelete: () => void;
+  onClearSubject: () => void;
+  onGenerateSubjects: () => void;
+  subjectsLoading: boolean;
+  clearableCount: number;
   selectedCount: number;
 }) {
   return (
@@ -143,6 +164,16 @@ export function CampaignHeader({
               ))}
             </div>
             <button
+              className="campaignClearSubjectButton"
+              type="button"
+              onClick={onClearSubject}
+              disabled={clearableCount === 0}
+              title="Clear the generated subject for selected drafted companies"
+            >
+              <Icon name="subject" size={16} />
+              Clear Subject
+            </button>
+            <button
               className="campaignDeleteButton"
               type="button"
               onClick={onDelete}
@@ -150,6 +181,16 @@ export function CampaignHeader({
             >
               <Icon name="delete" size={16} />
               Delete
+            </button>
+            <button
+              className="campaignSubjectGenButton"
+              type="button"
+              onClick={onGenerateSubjects}
+              disabled={clearableCount === 0 || subjectsLoading}
+              title="Generate email subjects for selected drafted companies"
+            >
+              <Icon name={subjectsLoading ? 'sync' : 'subject'} size={16} />
+              {subjectsLoading ? 'Generating...' : 'Generate Subjects'}
             </button>
             <GenerateButton
               onClick={onGenerate}
@@ -186,6 +227,7 @@ const columns = [
   ['Company Name', 'campaignColName'],
   ['Industry', 'campaignColIndustry'],
   ['Status', 'campaignColStatus'],
+  ['Subject', 'campaignColSubject'],
   ['Template', 'campaignColTemplate'],
   ['Resume', 'campaignColResume'],
   ['Score', 'campaignColScore'],
@@ -243,6 +285,16 @@ export function CampaignRow({
         <StatusPill tone={draftStatusThemes[company.status].tone}>
           {draftStatusThemes[company.status].label}
         </StatusPill>
+      </div>
+      <div
+        role="cell"
+        className="campaignCell campaignColSubject campaignMuted"
+      >
+        {company.subject !== undefined && company.subject.length > 0 ? (
+          <span className="campaignCellText">{company.subject}</span>
+        ) : (
+          <span className="campaignDash">--</span>
+        )}
       </div>
       <div role="cell" className="campaignCell campaignColTemplate">
         {company.status === 'drafted' ? (
@@ -510,6 +562,7 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
     kind: 'template' | 'resume';
   } | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
+  const [subjectsLoading, setSubjectsLoading] = useState(false);
 
   const companyRows = useQuery(listCampaignCompaniesQuery, {});
   const artifact = useQuery(
@@ -518,7 +571,9 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
   );
   const importedCompanies = useMemo(() => companyRows ?? [], [companyRows]);
   const generateArtifacts = useAction(generateArtifactsAction);
+  const generateSubjects = useAction(generateSubjectsAction);
   const deleteCompanies = useMutation(deleteCompaniesMutation);
+  const clearSubjects = useMutation(clearSubjectsMutation);
 
   const companies: CampaignCompany[] = useMemo(
     () =>
@@ -528,6 +583,7 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
         industry: company.industry,
         score: company.confidence,
         status: company.status,
+        subject: company.subject,
         selected: selectedIds.has(company.id),
       })),
     [importedCompanies, selectedIds],
@@ -628,6 +684,60 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
     }
   };
 
+  // Selected companies that are drafted (so they have a subject to clear).
+  const selectedDraftedIds = useMemo(
+    () =>
+      companies
+        .filter((c) => selectedIds.has(c.id) && c.status === 'drafted')
+        .map((c) => c.id),
+    [companies, selectedIds],
+  );
+
+  const handleClearSubjects = async () => {
+    if (selectedDraftedIds.length === 0) {
+      setNotice('Select at least one drafted company to clear its subject.');
+      return;
+    }
+    setGenError(null);
+    try {
+      await clearSubjects({ externalIds: selectedDraftedIds });
+      setNotice(
+        `Cleared the subject for ${selectedDraftedIds.length} ${
+          selectedDraftedIds.length === 1 ? 'company' : 'companies'
+        }.`,
+      );
+    } catch (error) {
+      console.error('Clear subjects failed:', error);
+      setGenError(
+        error instanceof Error ? error.message : 'Unknown clear-subject error',
+      );
+    }
+  };
+
+  const handleGenerateSubjects = async () => {
+    if (selectedDraftedIds.length === 0) {
+      setNotice('Select at least one drafted company to generate subjects.');
+      return;
+    }
+    setGenError(null);
+    setSubjectsLoading(true);
+    try {
+      await generateSubjects({ companyIds: selectedDraftedIds });
+      setNotice(
+        `Generated subjects for ${selectedDraftedIds.length} ${
+          selectedDraftedIds.length === 1 ? 'company' : 'companies'
+        }.`,
+      );
+    } catch (error) {
+      console.error('Subject generation failed:', error);
+      setGenError(
+        error instanceof Error ? error.message : 'Unknown subject error',
+      );
+    } finally {
+      setSubjectsLoading(false);
+    }
+  };
+
   function toggleSelected(id: string) {
     setSelectedIds((current) => {
       const next = new Set(current);
@@ -663,6 +773,10 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
         onStatusFilterChange={setStatusFilter}
         onGenerate={handleGenerate}
         onDelete={handleDelete}
+        onClearSubject={handleClearSubjects}
+        onGenerateSubjects={handleGenerateSubjects}
+        subjectsLoading={subjectsLoading}
+        clearableCount={selectedDraftedIds.length}
         selectedCount={selectedIds.size}
       />
       <div className="campaignCanvas">

@@ -34,6 +34,8 @@ export default defineSchema({
   artifacts: defineTable({
     companyId: v.string(),
     emailTemplate: v.string(),
+    /** Generated cold-email subject line (separate from the email body). */
+    emailSubject: v.optional(v.string()),
     /** The résumé LaTeX source (kept for re-compiling / debugging). */
     resumeLatex: v.string(),
     /** Stored PDF compiled from `resumeLatex`; absent if the compile failed. */
