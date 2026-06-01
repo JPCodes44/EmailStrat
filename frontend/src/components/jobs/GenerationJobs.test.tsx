@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { ConvexProvider, ConvexReactClient } from 'convex/react';
 import {
   GenerationJobsScreen,
   JobsRow,
@@ -39,7 +40,13 @@ const sampleJobs: JobRecord[] = [
 
 describe('TopBar', () => {
   it('renders fixed top bar actions without global search', () => {
-    render(<TopBar />);
+    // TopBar renders <ApiBalances/>, which subscribes via Convex useQuery.
+    const convexClient = new ConvexReactClient('https://example.convex.cloud');
+    render(
+      <ConvexProvider client={convexClient}>
+        <TopBar />
+      </ConvexProvider>,
+    );
     expect(
       screen.getByRole('button', { name: 'Notifications' }),
     ).toBeInTheDocument();

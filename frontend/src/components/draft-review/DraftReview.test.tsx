@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { ConvexProvider, ConvexReactClient } from 'convex/react';
 import {
   CardMenu,
   CompanyCard,
@@ -128,94 +129,28 @@ describe('EmailPreviewModal', () => {
 });
 
 describe('DraftReviewScreen', () => {
-  it('shows an empty state when there are no companies', () => {
-    render(<DraftReviewScreen />);
+  function renderScreen(onContinue = vi.fn()) {
+    const convexClient = new ConvexReactClient('https://example.convex.cloud');
+    render(
+      <ConvexProvider client={convexClient}>
+        <DraftReviewScreen onContinue={onContinue} />
+      </ConvexProvider>,
+    );
+    return onContinue;
+  }
+
+  it('renders the heading and the contacts table shell', () => {
+    renderScreen();
     expect(
       screen.getByRole('heading', { name: 'Review Company Email Groups' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('No companies to review.')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Select Acme Corp' }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('toggles card selection like a checkbox without opening the modal', async () => {
-    render(<DraftReviewScreen companies={sampleCompanies} />);
-
-    const acmeCard = screen.getByRole('button', { name: 'Select Acme Corp' });
-    const startupCard = screen.getByRole('button', {
-      name: 'Select Startup Inc',
-    });
-    expect(acmeCard).toHaveAttribute('aria-pressed', 'false');
-
-    await userEvent.click(acmeCard);
-    expect(acmeCard).toHaveAttribute('aria-pressed', 'true');
-
-    // Selecting a second card keeps the first selected (multi-select).
-    await userEvent.click(startupCard);
-    expect(acmeCard).toHaveAttribute('aria-pressed', 'true');
-    expect(startupCard).toHaveAttribute('aria-pressed', 'true');
-
-    // Clicking again clears just that card.
-    await userEvent.click(acmeCard);
-    expect(acmeCard).toHaveAttribute('aria-pressed', 'false');
-    expect(startupCard).toHaveAttribute('aria-pressed', 'true');
-
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  });
-
-  it('selects and clears every card with the select all button', async () => {
-    render(<DraftReviewScreen companies={sampleCompanies} />);
-    const acmeCard = screen.getByRole('button', { name: 'Select Acme Corp' });
-    const betaCard = screen.getByRole('button', { name: 'Select Beta Labs' });
-
-    const selectAll = screen.getByRole('button', { name: 'Select All' });
-    await userEvent.click(selectAll);
-    expect(acmeCard).toHaveAttribute('aria-pressed', 'true');
-    expect(betaCard).toHaveAttribute('aria-pressed', 'true');
-
-    const deselectAll = screen.getByRole('button', { name: 'Deselect All' });
-    await userEvent.click(deselectAll);
-    expect(acmeCard).toHaveAttribute('aria-pressed', 'false');
-    expect(betaCard).toHaveAttribute('aria-pressed', 'false');
-  });
-
-  it('opens the preview modal from the card options menu', async () => {
-    render(<DraftReviewScreen companies={sampleCompanies} />);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Options for Acme Corp' }),
-    );
-    await userEvent.click(screen.getByRole('menuitem', { name: 'Preview' }));
-
-    expect(
-      screen.getByRole('dialog', { name: 'Email Preview' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(acme.preview.subject)).toBeInTheDocument();
+    // No live data under the test client → loading placeholder.
+    expect(screen.getByText('Loading…')).toBeInTheDocument();
   });
 
   it('advances to scheduling when Continue is clicked', async () => {
-    const onContinue = vi.fn();
-    render(<DraftReviewScreen onContinue={onContinue} />);
+    const onContinue = renderScreen();
     await userEvent.click(screen.getByRole('button', { name: /Continue/ }));
     expect(onContinue).toHaveBeenCalledTimes(1);
-  });
-
-  it('filters companies by status', async () => {
-    render(<DraftReviewScreen companies={sampleCompanies} />);
-    expect(
-      screen.getByRole('button', { name: 'Select Startup Inc' }),
-    ).toBeInTheDocument();
-    await userEvent.selectOptions(
-      screen.getByRole('combobox', { name: 'Filter by status' }),
-      'ready',
-    );
-    expect(
-      screen.queryByRole('button', { name: 'Select Startup Inc' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Select Acme Corp' }),
-    ).toBeInTheDocument();
   });
 });

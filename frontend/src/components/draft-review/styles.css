@@ -191,6 +191,33 @@
   margin: 0;
 }
 
+.draftTableLoading {
+  margin: 0;
+  padding: 24px;
+  font:
+    400 14px/20px Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #737686;
+}
+
+/* Column widths for the draft-review table, paired with the reused campaign*
+   structural classes (campaignTable / campaignRow / campaignCell …). */
+.draftColSelect {
+  flex: 0 0 48px;
+  justify-content: center;
+}
+.draftColName {
+  flex: 1.2 1 160px;
+}
+.draftColEmail {
+  flex: 1.4 1 200px;
+}
+.draftColStatus {
+  flex: 0 0 120px;
+}
+
 .draftCard {
   display: flex;
   flex-direction: column;

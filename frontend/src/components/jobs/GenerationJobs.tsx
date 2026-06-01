@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button, Icon } from '../outreach/Common';
+import { ApiBalances } from '../account/ApiBalances';
 import { generationJobs, generationStats } from './data';
 import type {
   GenerationJobsScreenProps,
@@ -17,7 +18,9 @@ const noop = () => undefined;
 export function TopBar() {
   return (
     <header className="jobsTopBar">
-      <div className="jobsTopSpacer" />
+      <div className="jobsTopSpacer">
+        <ApiBalances />
+      </div>
       <div className="jobsTopActions">
         <button
           className="jobsIconButton"

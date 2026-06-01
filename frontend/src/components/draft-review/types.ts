@@ -39,8 +39,31 @@ export interface DraftReviewHeaderProps {
   onQueryChange: (value: string) => void;
   status: string;
   onStatusChange: (value: string) => void;
+  /** Optional select-all control; omitted when selection lives in the table. */
+  allSelected?: boolean;
+  onToggleSelectAll?: () => void;
+}
+
+/** A drafted company's recipient emails, as stored on the company row. */
+export interface CompanyEmailRow {
+  companyId: string;
+  company: string;
+  email1: string;
+  email2: string;
+  email3: string;
+  status: string;
+}
+
+export interface DraftReviewTableProps {
+  loading: boolean;
+  rows: CompanyEmailRow[];
+  selectedIds: ReadonlySet<string>;
   allSelected: boolean;
-  onToggleSelectAll: () => void;
+  /** Currently highlighted (clicked) row. */
+  activeId?: string;
+  onSelect: (id: string) => void;
+  onToggleSelected: (id: string) => void;
+  onToggleAll: () => void;
 }
 
 export interface StatusBadgeProps {
@@ -78,6 +101,4 @@ export interface EmailPreviewModalProps {
 export interface DraftReviewScreenProps {
   /** Advances to the Schedule Submission screen. */
   onContinue?: () => void;
-  /** Companies to review; defaults to the (currently empty) seed list. */
-  companies?: DraftCompany[];
 }

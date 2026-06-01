@@ -45,6 +45,36 @@ export const listEmailTableRows = query({
   },
 });
 
+/**
+ * Every company in the DB that has at least one non-empty recipient email,
+ * regardless of draft status. Powers the read-only "Companies with contacts"
+ * table; subscribed on screen mount and torn down on unmount via `useQuery`.
+ */
+export const listCompaniesWithEmails = query({
+  args: {},
+  handler: async (ctx) => {
+    const companies = await ctx.db.query('companies').collect();
+    const rows = companies
+      .filter((company) =>
+        Boolean(
+          company.email1?.trim() ||
+          company.email2?.trim() ||
+          company.email3?.trim(),
+        ),
+      )
+      .map((company) => ({
+        companyId: company.externalId,
+        company: company.name,
+        email1: company.email1 ?? '',
+        email2: company.email2 ?? '',
+        email3: company.email3 ?? '',
+        status: company.emailStatus ?? 'Not Sent',
+      }));
+    rows.sort((a, b) => a.company.localeCompare(b.company));
+    return rows;
+  },
+});
+
 /** Persist a single manually-edited email cell for a company. */
 export const setEmailRow = mutation({
   args: {

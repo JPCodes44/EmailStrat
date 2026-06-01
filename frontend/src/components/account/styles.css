@@ -1,0 +1,42 @@
+.apiBalances {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.apiBalancePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: #eceef0;
+  border: 1px solid #d6d9e0;
+  white-space: nowrap;
+}
+
+.apiBalanceLabel {
+  font: 700 9px/12px Inter, system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6b6f7a;
+}
+
+.apiBalanceValue {
+  font: 700 12px/14px Inter, system-ui, -apple-system, sans-serif;
+  color: #191c1e;
+  font-variant-numeric: tabular-nums;
+}
+
+.apiBalancePill-low {
+  background: #ffdad6;
+  border-color: #f3b6af;
+}
+
+.apiBalancePill-low .apiBalanceLabel {
+  color: #93000a;
+}
+
+.apiBalancePill-low .apiBalanceValue {
+  color: #93000a;
+}

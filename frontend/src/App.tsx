@@ -7,6 +7,7 @@ import './components/jobs/styles.css';
 import './components/draft-review/styles.css';
 import './components/schedule/styles.css';
 import './components/modals/styles.css';
+import './components/account/styles.css';
 import { CampaignsScreen } from './components/campaigns/Campaigns';
 import { DraftReviewScreen } from './components/draft-review/DraftReview';
 import { EmailTableScreen } from './components/email-table/EmailTable';

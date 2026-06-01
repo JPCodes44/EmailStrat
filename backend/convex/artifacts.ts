@@ -8,8 +8,18 @@ import type { Id } from './_generated/dataModel';
 import { EMAIL_SYSTEM_PROMPT } from './prompts/email_system';
 import { RESUME_SYSTEM_PROMPT } from './prompts/resume_system';
 import { CANDIDATE_RESUMES } from './resumes';
+import { computeCostUsd } from './pricing';
 
-const OPENAI_MODEL = 'gpt-5.5';
+const EMAIL_MODEL = 'gpt-4o-mini';
+const RESUME_MODEL = 'gpt-5.4-mini';
+
+/** Strip any markdown code fences a model wraps the LaTeX in. */
+function stripCodeFences(text: string): string {
+  return text
+    .replace(/^\s*```(?:latex|tex)?\s*\n?/i, '')
+    .replace(/\n?```\s*$/i, '')
+    .trim();
+}
 
 /** Compile LaTeX to PDF bytes via the ytotech LaTeX-as-a-service API. */
 async function compileLatexToPdf(latex: string): Promise<ArrayBuffer> {
@@ -29,7 +39,7 @@ async function compileLatexToPdf(latex: string): Promise<ArrayBuffer> {
   return res.arrayBuffer();
 }
 
-/** Batch generate artifacts for multiple companies using OpenAI. */
+/** Batch generate artifacts (email + résumé) for multiple companies. */
 export const generateForCompanies = action({
   args: {
     companies: v.array(
@@ -45,6 +55,7 @@ export const generateForCompanies = action({
       throw new Error('OPENAI_API_KEY is not configured in Convex dashboard.');
     }
 
+    // Email + résumé both run on OpenAI.
     const openai = new OpenAI({ apiKey });
 
     // System prompts + combined candidate profile, bundled as TS constants so
@@ -60,7 +71,7 @@ export const generateForCompanies = action({
 
         // 1. Generate the cold email first.
         const emailRes = await openai.chat.completions.create({
-          model: OPENAI_MODEL,
+          model: EMAIL_MODEL,
           messages: [
             { role: 'system', content: emailSystem },
             { role: 'user', content: userData },
@@ -78,13 +89,15 @@ export const generateForCompanies = action({
 
         // 3. Generate the resume from the email-aware prompt.
         const resumeRes = await openai.chat.completions.create({
-          model: OPENAI_MODEL,
+          model: RESUME_MODEL,
           messages: [
             { role: 'system', content: resumeSystem },
             { role: 'user', content: userData },
           ],
         });
-        const resumeLatex = resumeRes.choices[0]?.message.content || '';
+        const resumeLatex = stripCodeFences(
+          resumeRes.choices[0]?.message.content || '',
+        );
 
         // 4. Compile the resume LaTeX to a PDF and store it. A compile failure
         //    degrades gracefully: the email + LaTeX are still saved.
@@ -105,6 +118,31 @@ export const generateForCompanies = action({
           ...(resumePdfId ? { resumePdfId } : {}),
           status: 'completed',
         });
+
+        // 5. Update the navbar balance tracker (best-effort: a tracking failure
+        //    must never fail the generation itself). Both the email and résumé
+        //    run on OpenAI, so drain the combined estimated cost from one key.
+        try {
+          const emailCost = computeCostUsd(
+            EMAIL_MODEL,
+            emailRes.usage?.prompt_tokens ?? 0,
+            emailRes.usage?.completion_tokens ?? 0,
+          );
+          const resumeCost = computeCostUsd(
+            RESUME_MODEL,
+            resumeRes.usage?.prompt_tokens ?? 0,
+            resumeRes.usage?.completion_tokens ?? 0,
+          );
+          await ctx.runMutation(internal.usageDb.recordUsage, {
+            provider: 'openai',
+            costUsd: emailCost + resumeCost,
+          });
+        } catch (balanceErr) {
+          console.error(
+            `Balance tracking failed for ${company.name}:`,
+            balanceErr,
+          );
+        }
       } catch (error) {
         console.error(`Failed to generate for ${company.name}:`, error);
         await ctx.runMutation(internal.artifactsDb.saveResult, {

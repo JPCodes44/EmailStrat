@@ -184,8 +184,8 @@ BASc. Nanotechnology Engineering, Combinatorics \& Optimization Minor \hfill Exp
 
 \end{document}
 
-And for each experience, I need you to make at least 3 bullet points for the 1st, and 3rd experiences and 4 bullet points for the 2nd experience, such that each one matches the cold email specified at our career fair. By the time all the experiences are filled out, every point should cover all requirements of the cold email in some way.
-
+And for each experience, I need you to make only 3 bullet points for the 1st and 3rd experiences, and only 4 bullet points for the 2nd experience, such that each one matches the cold email specified at our career fair. By the time all the experiences are filled out, every point should cover all requirements of the cold email in some way.
+<important> For the project, it needs to be MAX 1 bullet </important>
 For formatting the role name:
 
 - do not say [role name] Intern, instead say the actual role without the end word/level (intern).
@@ -214,10 +214,8 @@ For formatting the bullet points:
 Extra notes:
 
 - do not add any additional sections, the sections we have now are already good enough.
-- make sure when you fill up the skills section, each skill section must fill up the 95 character limit and DO NOT go over this (for all skills in a singular skill type).
-- each skill should match the highest priority keywords in the cold email. 
+- each skill should match the highest priority keywords in the cold email.
 - make sure theres at most 5 skill types.
-- make sure the skills do not overflow on the sides.
 - here is a great example: 
 - \begin{tabular}{ l l }
   \textbf{Sales:} & Outbound prospecting, B2B telesales, virtual presentations, objection handling, negotiation \\

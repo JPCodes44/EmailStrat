@@ -67,4 +67,24 @@ export default defineSchema({
     ),
     createdAt: v.string(),
   }).index('by_externalId', ['externalId']),
+  /**
+   * Per-provider API credit tracker, one row per provider, surfaced in the
+   * navbar. `balanceUsd` is remaining $ (DeepSeek real; OpenAI + Gemini-paid
+   * estimated from token usage). The Gemini free key has no dollar cost, so it
+   * is tracked as a daily request counter instead.
+   */
+  providerBalances: defineTable({
+    provider: v.union(
+      v.literal('openai'),
+      v.literal('deepseek'),
+      v.literal('gemini'),
+    ),
+    /** Remaining estimated/real USD (openai, deepseek, gemini paid tier). */
+    balanceUsd: v.optional(v.number()),
+    /** Gemini free-key requests left in the current day (out of the daily cap). */
+    freeRequestsRemaining: v.optional(v.number()),
+    /** ISO timestamp of the next midnight-Pacific reset for the free counter. */
+    freeResetAt: v.optional(v.string()),
+    updatedAt: v.string(),
+  }).index('by_provider', ['provider']),
 });

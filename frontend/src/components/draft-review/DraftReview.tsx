@@ -1,12 +1,16 @@
 import { useMemo, useState } from 'react';
+import { useQuery } from 'convex/react';
+import { makeFunctionReference } from 'convex/server';
 import { Icon } from '../outreach/Common';
-import { draftCompanies, statusOptions } from './data';
+import { statusOptions } from './data';
 import type {
   CardMenuProps,
   CompanyCardProps,
+  CompanyEmailRow,
   CompanyGridProps,
   DraftReviewHeaderProps,
   DraftReviewScreenProps,
+  DraftReviewTableProps,
   EmailPreviewModalProps,
   ResumeAttachmentProps,
   StatusBadgeProps,
@@ -68,15 +72,20 @@ export function DraftReviewHeader({
           </span>
         </div>
       </div>
-      <button
-        className="draftSelectAllButton"
-        type="button"
-        aria-pressed={allSelected}
-        onClick={onToggleSelectAll}
-      >
-        <Icon name={allSelected ? 'check_box' : 'select_all'} size={18} />
-        {allSelected ? 'Deselect All' : 'Select All'}
-      </button>
+      {onToggleSelectAll !== undefined ? (
+        <button
+          className="draftSelectAllButton"
+          type="button"
+          aria-pressed={allSelected === true}
+          onClick={onToggleSelectAll}
+        >
+          <Icon
+            name={allSelected === true ? 'check_box' : 'select_all'}
+            size={18}
+          />
+          {allSelected === true ? 'Deselect All' : 'Select All'}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -362,10 +371,161 @@ export function EmailPreviewModal({
   );
 }
 
-export function DraftReviewScreen({
-  onContinue,
-  companies = draftCompanies,
-}: DraftReviewScreenProps) {
+// Live subscription: opens when the screen mounts and is torn down on unmount.
+// Reused from the Email Table — returns every company with ≥1 non-empty email.
+const listCompaniesWithEmailsQuery = makeFunctionReference<
+  'query',
+  Record<string, never>,
+  CompanyEmailRow[]
+>('emails:listCompaniesWithEmails');
+
+/** Show an email address, or a dash when that slot is empty. */
+function emailCell(value: string): string {
+  return value.trim().length > 0 ? value : '—';
+}
+
+/**
+ * Table of companies that have at least one recipient email. Reuses the
+ * Campaigns table's structure/styling (`campaign*` classes) so it shares the
+ * same selectable-checkbox + clickable-row interaction.
+ */
+export function DraftReviewTable({
+  loading,
+  rows,
+  selectedIds,
+  allSelected,
+  activeId,
+  onSelect,
+  onToggleSelected,
+  onToggleAll,
+}: DraftReviewTableProps) {
+  if (loading) {
+    return <p className="draftTableLoading">Loading…</p>;
+  }
+  return (
+    <section className="campaignTableCard">
+      <div className="campaignTableScroller">
+        <div
+          role="table"
+          aria-label="Companies with contacts"
+          className="campaignTable"
+        >
+          <div role="rowgroup">
+            <div role="row" className="campaignHeaderRow">
+              <div
+                role="columnheader"
+                className="campaignHeadCell draftColSelect"
+              >
+                <input
+                  className="campaignCheckbox"
+                  type="checkbox"
+                  checked={allSelected}
+                  aria-label="Select all companies"
+                  onChange={onToggleAll}
+                />
+              </div>
+              <div
+                role="columnheader"
+                className="campaignHeadCell draftColName"
+              >
+                Company
+              </div>
+              <div
+                role="columnheader"
+                className="campaignHeadCell draftColEmail"
+              >
+                Email1
+              </div>
+              <div
+                role="columnheader"
+                className="campaignHeadCell draftColEmail"
+              >
+                Email2
+              </div>
+              <div
+                role="columnheader"
+                className="campaignHeadCell draftColEmail"
+              >
+                Email3
+              </div>
+              <div
+                role="columnheader"
+                className="campaignHeadCell draftColStatus"
+              >
+                Status
+              </div>
+            </div>
+          </div>
+          <div role="rowgroup">
+            {rows.length === 0 ? (
+              <div role="row" className="campaignEmptyRow">
+                <div role="cell" className="campaignEmptyCell">
+                  No companies to review.
+                </div>
+              </div>
+            ) : (
+              rows.map((row) => (
+                <div
+                  key={row.companyId}
+                  className={[
+                    'campaignRow',
+                    row.companyId === activeId ? 'campaignRowActive' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  role="row"
+                  tabIndex={0}
+                  onClick={() => onSelect(row.companyId)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      onSelect(row.companyId);
+                    }
+                  }}
+                >
+                  <div role="cell" className="campaignCell draftColSelect">
+                    <input
+                      className="campaignCheckbox"
+                      type="checkbox"
+                      checked={selectedIds.has(row.companyId)}
+                      aria-label={`Select ${row.company}`}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={() => onToggleSelected(row.companyId)}
+                    />
+                  </div>
+                  <div role="cell" className="campaignCell draftColName">
+                    <span className="campaignCellText">{row.company}</span>
+                  </div>
+                  <div role="cell" className="campaignCell draftColEmail">
+                    <span className="campaignCellText">
+                      {emailCell(row.email1)}
+                    </span>
+                  </div>
+                  <div role="cell" className="campaignCell draftColEmail">
+                    <span className="campaignCellText">
+                      {emailCell(row.email2)}
+                    </span>
+                  </div>
+                  <div role="cell" className="campaignCell draftColEmail">
+                    <span className="campaignCellText">
+                      {emailCell(row.email3)}
+                    </span>
+                  </div>
+                  <div role="cell" className="campaignCell draftColStatus">
+                    <span className="campaignCellText">{row.status}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function DraftReviewScreen({ onContinue }: DraftReviewScreenProps) {
+  const rows = useQuery(listCompaniesWithEmailsQuery, {});
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -397,32 +557,28 @@ export function DraftReviewScreen({
     });
   }
 
-  const visibleCompanies = useMemo(() => {
+  const visibleRows = useMemo(() => {
+    const list = rows ?? [];
     const term = query.trim().toLowerCase();
-    return companies.filter((company) => {
-      if (status !== 'all' && company.status !== status) {
+    return list.filter((row) => {
+      if (status !== 'all' && row.status !== status) {
         return false;
       }
       if (term.length === 0) {
         return true;
       }
       return (
-        company.name.toLowerCase().includes(term) ||
-        company.emails.some((email) =>
-          email.address.toLowerCase().includes(term),
+        row.company.toLowerCase().includes(term) ||
+        [row.email1, row.email2, row.email3].some((email) =>
+          email.toLowerCase().includes(term),
         )
       );
     });
-  }, [companies, query, status]);
-
-  const activeCompany = useMemo(
-    () => companies.find((company) => company.id === activeId),
-    [companies, activeId],
-  );
+  }, [rows, query, status]);
 
   const allSelected =
-    visibleCompanies.length > 0 &&
-    visibleCompanies.every((company) => selectedIds.has(company.id));
+    visibleRows.length > 0 &&
+    visibleRows.every((row) => selectedIds.has(row.companyId));
 
   return (
     <section className="draftScreen">
@@ -438,19 +594,21 @@ export function DraftReviewScreen({
         onQueryChange={setQuery}
         status={status}
         onStatusChange={setStatus}
+      />
+      <DraftReviewTable
+        loading={rows === undefined}
+        rows={visibleRows}
+        selectedIds={selectedIds}
         allSelected={allSelected}
-        onToggleSelectAll={() =>
+        activeId={activeId}
+        onSelect={setActiveId}
+        onToggleSelected={toggleSelected}
+        onToggleAll={() =>
           toggleSelectAll(
-            visibleCompanies.map((company) => company.id),
+            visibleRows.map((row) => row.companyId),
             allSelected,
           )
         }
-      />
-      <CompanyGrid
-        companies={visibleCompanies}
-        selectedIds={selectedIds}
-        onSelect={toggleSelected}
-        onPreview={setActiveId}
       />
       <div className="draftFooter">
         <button className="draftSecondaryButton" type="button">
@@ -465,12 +623,6 @@ export function DraftReviewScreen({
           <Icon name="arrow_forward" size={18} />
         </button>
       </div>
-      {activeCompany !== undefined ? (
-        <EmailPreviewModal
-          company={activeCompany}
-          onClose={() => setActiveId(undefined)}
-        />
-      ) : null}
     </section>
   );
 }

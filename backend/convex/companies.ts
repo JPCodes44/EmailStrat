@@ -3,6 +3,17 @@ import { v } from 'convex/values';
 // `./_generated/server` is produced by `bunx convex dev`. Until you run it once,
 // this import will not resolve — that is expected for a fresh checkout.
 import { action, mutation, query } from './_generated/server';
+import { internal } from './_generated/api';
+import { computeCostUsd, GEMINI_GROUNDING_EST_USD } from './pricing';
+
+interface ResearchArgs {
+  keywords?: string;
+  industry: string;
+  companySize: string;
+  location: string;
+  techStack: string[];
+  limit: number;
+}
 
 interface CompanyResearchCandidate {
   name?: string;
@@ -81,12 +92,22 @@ function parseResearchResponse(
   return parsed.companies;
 }
 
+/** Transient server errors (503/UNAVAILABLE) — worth retrying the SAME key. */
 function isTransientGeminiError(error: unknown): boolean {
   if (error instanceof Error) {
     return (
       error.message.includes('"code":503') ||
+      error.message.includes('"status":"UNAVAILABLE"')
+    );
+  }
+  return false;
+}
+
+/** Quota/rate-limit exhaustion (429/RESOURCE_EXHAUSTED) — fall back to paid key. */
+function isQuotaError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return (
       error.message.includes('"code":429') ||
-      error.message.includes('"status":"UNAVAILABLE"') ||
       error.message.includes('"status":"RESOURCE_EXHAUSTED"')
     );
   }
@@ -99,6 +120,81 @@ function wait(ms: number) {
   });
 }
 
+/** A research call's text plus the token usage used for cost estimation. */
+interface ResearchResult {
+  text: string | undefined;
+  promptTokens: number;
+  completionTokens: number;
+}
+
+/**
+ * Run one grounded Gemini research call with a given API key, retrying only on
+ * transient (503) errors. Quota (429) errors bubble up so the caller can decide
+ * whether to fall back to a different key.
+ */
+async function requestResearch(
+  apiKey: string,
+  model: string,
+  args: ResearchArgs,
+): Promise<ResearchResult> {
+  const gemini = new GoogleGenAI({ apiKey });
+
+  for (let attempt = 1; attempt <= maxGeminiAttempts; attempt += 1) {
+    try {
+      const response = await gemini.models.generateContent({
+        model,
+        contents: JSON.stringify({
+          role: 'company_research_request',
+          instruction:
+            'Research companies for outbound job-search outreach. Use Google Search grounding. Find companies that match the submitted criteria. Do not include blacklist logic. Return raw JSON only, with no markdown fences, no citations, and no prose.',
+          researchCriteria: args,
+          request: `Find ${args.limit} companies.`,
+          responseShape: {
+            companies: [
+              {
+                name: 'string',
+                domain: 'string',
+                industry: 'string',
+                location: 'string',
+                size: 'string',
+                techStack: ['string'],
+                confidence: 'number from 0 to 100',
+              },
+            ],
+          },
+          outputRequirements: {
+            includeFields: [
+              'name',
+              'domain',
+              'industry',
+              'location',
+              'size',
+              'techStack',
+              'confidence',
+            ],
+          },
+        }),
+        // Google Search grounding for live, current company discovery.
+        config: {
+          tools: [{ googleSearch: {} }],
+        },
+      });
+      const usage = response.usageMetadata;
+      return {
+        text: response.text,
+        promptTokens: usage?.promptTokenCount ?? 0,
+        completionTokens: usage?.candidatesTokenCount ?? 0,
+      };
+    } catch (error) {
+      if (attempt === maxGeminiAttempts || !isTransientGeminiError(error)) {
+        throw error;
+      }
+      await wait(500 * attempt);
+    }
+  }
+  return { text: undefined, promptTokens: 0, completionTokens: 0 };
+}
+
 /** Research companies from the discovery filters with one grounded Gemini call. */
 export const research = action({
   args: {
@@ -109,66 +205,56 @@ export const research = action({
     techStack: v.array(v.string()),
     limit: v.number(),
   },
-  handler: async (_ctx, args): Promise<CompanyResearchResponse> => {
+  handler: async (ctx, args): Promise<CompanyResearchResponse> => {
     const env = getDeploymentEnv();
-    const apiKey = env.GEMINI_API_KEY;
-    if (apiKey === undefined || apiKey.length === 0) {
+    const freeKey = env.GEMINI_API_KEY;
+    if (freeKey === undefined || freeKey.length === 0) {
       throw new Error('GEMINI_API_KEY is required for company research.');
     }
+    // Optional paid (billing-enabled) key. When the free tier's daily quota is
+    // exhausted, fall back to this so research keeps working — and we only ever
+    // pay once the free quota is spent. Resets daily, so the free key is tried
+    // first again after midnight Pacific.
+    const paidKey = env.GEMINI_API_KEY_PAID;
+    const model = env.GEMINI_RESEARCH_MODEL ?? 'gemini-2.5-flash';
 
-    const gemini = new GoogleGenAI({ apiKey });
-    let responseText: string | undefined;
-
-    for (let attempt = 1; attempt <= maxGeminiAttempts; attempt += 1) {
-      try {
-        const response = await gemini.models.generateContent({
-          model: env.GEMINI_RESEARCH_MODEL ?? 'gemini-2.5-flash',
-          contents: JSON.stringify({
-            role: 'company_research_request',
-            instruction:
-              'Research companies for outbound job-search outreach. Use Google Search grounding. Find companies that match the submitted criteria. Do not include blacklist logic. Return raw JSON only, with no markdown fences, no citations, and no prose.',
-            researchCriteria: args,
-            request: `Find ${args.limit} companies.`,
-            responseShape: {
-              companies: [
-                {
-                  name: 'string',
-                  domain: 'string',
-                  industry: 'string',
-                  location: 'string',
-                  size: 'string',
-                  techStack: ['string'],
-                  confidence: 'number from 0 to 100',
-                },
-              ],
-            },
-            outputRequirements: {
-              includeFields: [
-                'name',
-                'domain',
-                'industry',
-                'location',
-                'size',
-                'techStack',
-                'confidence',
-              ],
-            },
-          }),
-          config: {
-            tools: [{ googleSearch: {} }],
-          },
-        });
-        responseText = response.text;
-        break;
-      } catch (error) {
-        if (attempt === maxGeminiAttempts || !isTransientGeminiError(error)) {
-          throw error;
-        }
-        await wait(500 * attempt);
+    let result: ResearchResult;
+    let usedFreeKey = true;
+    try {
+      result = await requestResearch(freeKey, model, args);
+    } catch (error) {
+      if (isQuotaError(error) && paidKey !== undefined && paidKey.length > 0) {
+        usedFreeKey = false;
+        result = await requestResearch(paidKey, model, args);
+      } else {
+        throw error;
       }
     }
 
-    const companies = parseResearchResponse(responseText)
+    // Update the navbar balance tracker (best-effort). The free key only burns
+    // a daily request; the paid key drains estimated dollars (tokens + grounding).
+    try {
+      if (usedFreeKey) {
+        await ctx.runMutation(internal.usageDb.recordUsage, {
+          provider: 'gemini',
+          usedFreeGemini: true,
+        });
+      } else {
+        await ctx.runMutation(internal.usageDb.recordUsage, {
+          provider: 'gemini',
+          costUsd: computeCostUsd(
+            model,
+            result.promptTokens,
+            result.completionTokens,
+          ),
+          groundingCostUsd: GEMINI_GROUNDING_EST_USD,
+        });
+      }
+    } catch (trackErr) {
+      console.error('Gemini usage tracking failed:', trackErr);
+    }
+
+    const companies = parseResearchResponse(result.text)
       .slice(0, args.limit)
       .map(normalizeCompany);
 

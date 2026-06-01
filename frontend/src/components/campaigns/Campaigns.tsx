@@ -163,10 +163,13 @@ export function CampaignHeader({
 }
 
 export function CampaignScore({ score }: CampaignScoreProps) {
+  // Snap to the nearest 5% so the fill width maps to a fixed CSS class for any
+  // score (avoids needing a hand-written rule per exact integer).
+  const fillWidth = Math.min(100, Math.max(0, Math.round(score / 5) * 5));
   return (
     <div className="campaignScore">
       <span className="campaignScoreTrack">
-        <span className={`campaignScoreFill campaignScoreFill-${score}`} />
+        <span className={`campaignScoreFill campaignScoreFill-${fillWidth}`} />
       </span>
       <span
         className={`campaignCellText ${

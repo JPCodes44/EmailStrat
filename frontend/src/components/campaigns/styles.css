@@ -439,14 +439,69 @@
   background: #006242;
 }
 
+/* Fill width per score, snapped to the nearest 5% by CampaignScore. */
+.campaignScoreFill-0 {
+  inline-size: 0%;
+}
+.campaignScoreFill-5 {
+  inline-size: 5%;
+}
+.campaignScoreFill-10 {
+  inline-size: 10%;
+}
+.campaignScoreFill-15 {
+  inline-size: 15%;
+}
+.campaignScoreFill-20 {
+  inline-size: 20%;
+}
+.campaignScoreFill-25 {
+  inline-size: 25%;
+}
+.campaignScoreFill-30 {
+  inline-size: 30%;
+}
+.campaignScoreFill-35 {
+  inline-size: 35%;
+}
+.campaignScoreFill-40 {
+  inline-size: 40%;
+}
+.campaignScoreFill-45 {
+  inline-size: 45%;
+}
 .campaignScoreFill-50 {
   inline-size: 50%;
+}
+.campaignScoreFill-55 {
+  inline-size: 55%;
+}
+.campaignScoreFill-60 {
+  inline-size: 60%;
+}
+.campaignScoreFill-65 {
+  inline-size: 65%;
+}
+.campaignScoreFill-70 {
+  inline-size: 70%;
+}
+.campaignScoreFill-75 {
+  inline-size: 75%;
+}
+.campaignScoreFill-80 {
+  inline-size: 80%;
 }
 .campaignScoreFill-85 {
   inline-size: 85%;
 }
-.campaignScoreFill-92 {
-  inline-size: 92%;
+.campaignScoreFill-90 {
+  inline-size: 90%;
+}
+.campaignScoreFill-95 {
+  inline-size: 95%;
+}
+.campaignScoreFill-100 {
+  inline-size: 100%;
 }
 
 .campaignScoreGood {
