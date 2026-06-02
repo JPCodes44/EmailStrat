@@ -27,7 +27,7 @@ bun install
 ## Develop
 
 ```bash
-bun run dev:web        # start the Vite dev server (frontend)
+bun run app            # start the web app
 bun run dev:backend    # start Convex (see note below)
 ```
 
