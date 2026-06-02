@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAction, useMutation, useQuery } from 'convex/react';
 import { makeFunctionReference } from 'convex/server';
+import { zonedWallTimeToUtcMs } from '@emailstrat/common';
 import { Icon } from '../outreach/Common';
+import { useSetSelection } from '../shared/useSetSelection';
 import { deliveryOptions, timeOptions, timezoneOptions } from './data';
 import type {
   DeliveryMethod,
@@ -59,30 +61,6 @@ const TZ_TO_IANA: Record<string, string> = {
   cet: 'Europe/Berlin',
 };
 
-/** Offset (ms) to add to a UTC instant to get the wall-clock time in `tz`. */
-function tzOffsetMs(date: Date, tz: string): number {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    hour12: false,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).formatToParts(date);
-  const part = (type: Intl.DateTimeFormatPartTypes): number =>
-    Number(parts.find((entry) => entry.type === type)?.value ?? 0);
-  const asUtc = Date.UTC(
-    part('year'),
-    part('month') - 1,
-    part('day'),
-    part('hour'),
-    part('minute'),
-  );
-  return asUtc - date.getTime();
-}
-
 /** Convert a wall-clock date+time in the chosen timezone to a UTC timestamp (ms). */
 function computeScheduledAtMs(
   date: string,
@@ -92,16 +70,7 @@ function computeScheduledAtMs(
   if (time === 'now') return Date.now();
 
   const iana = TZ_TO_IANA[tzValue] ?? 'UTC';
-  const [year, month, day] = date.split('-').map(Number);
-  const [hour, minute] = time.split(':').map(Number);
-  const guessUtc = Date.UTC(
-    year ?? 0,
-    (month ?? 1) - 1,
-    day ?? 1,
-    hour ?? 0,
-    minute ?? 0,
-  );
-  return guessUtc - tzOffsetMs(new Date(guessUtc), iana);
+  return zonedWallTimeToUtcMs(date, time, iana);
 }
 
 /** Today as YYYY-MM-DD for the date input's default. */
@@ -442,9 +411,12 @@ export function ScheduleSubmissionScreen({
   const [submitting, setSubmitting] = useState(false);
   const [drafting, setDrafting] = useState(false);
   const [unscheduling, setUnscheduling] = useState(false);
-  const [selectedUnscheduleIds, setSelectedUnscheduleIds] = useState<
-    Set<string>
-  >(() => new Set());
+  const {
+    selectedIds: selectedUnscheduleIds,
+    clearSelected: clearUnscheduleSelected,
+    toggleSelected: toggleUnscheduleSelected,
+    toggleAll: toggleAllUnscheduleIds,
+  } = useSetSelection<string>();
   const [notice, setNotice] = useState<string | null>(null);
   const scheduleSummary = useQuery(
     getScheduleSummaryQuery,
@@ -511,26 +483,14 @@ export function ScheduleSubmissionScreen({
     }
   };
 
-  const toggleUnscheduleSelected = (companyId: string) => {
-    setSelectedUnscheduleIds((current) => {
-      const next = new Set(current);
-      if (next.has(companyId)) {
-        next.delete(companyId);
-      } else {
-        next.add(companyId);
-      }
-      return next;
-    });
-  };
-
   const toggleAllUnscheduleSelected = () => {
-    setSelectedUnscheduleIds((current) => {
-      const allSelected =
-        entities.length > 0 &&
-        entities.every((entity) => current.has(entity.id));
-      if (allSelected) return new Set();
-      return new Set(entities.map((entity) => entity.id));
-    });
+    const allSelected =
+      entities.length > 0 &&
+      entities.every((entity) => selectedUnscheduleIds.has(entity.id));
+    toggleAllUnscheduleIds(
+      entities.map((entity) => entity.id),
+      allSelected,
+    );
   };
 
   const handleUnschedule = async () => {
@@ -541,7 +501,7 @@ export function ScheduleSubmissionScreen({
       const result = await cancelScheduledSends({
         companyIds: [...selectedUnscheduleIds],
       });
-      setSelectedUnscheduleIds(new Set());
+      clearUnscheduleSelected();
       setNotice(
         result.canceled === 0
           ? 'No scheduled emails found for the selected companies.'

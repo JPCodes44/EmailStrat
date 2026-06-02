@@ -5,6 +5,7 @@ import nodemailer from 'nodemailer';
 import { internal } from './_generated/api';
 import { action, internalAction, type ActionCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
+import { parsePlainEmailTemplate } from '@emailstrat/common';
 
 interface MailAttachment {
   filename: string;
@@ -22,22 +23,6 @@ function env(name: string): string {
 
 function trimError(message: string): string {
   return message.length > 1000 ? `${message.slice(0, 997)}...` : message;
-}
-
-function parseEmailTemplate(template: string): {
-  subjectLine: string | null;
-  body: string;
-} {
-  const trimmed = template.trim();
-  const lines = trimmed.split('\n');
-  const first = lines[0]?.trim() ?? '';
-  if (/^subject:/i.test(first)) {
-    return {
-      subjectLine: first.replace(/^subject:\s*/i, '').trim(),
-      body: lines.slice(1).join('\n').trim(),
-    };
-  }
-  return { subjectLine: null, body: trimmed };
 }
 
 async function fileAttachmentFromUrl(
@@ -63,7 +48,9 @@ async function mailPayload(ctx: ActionCtx, itemId: Id<'sendQueue'>) {
   });
   if (draft === null) return null;
 
-  const { subjectLine, body } = parseEmailTemplate(draft.emailTemplate);
+  const { subjectLine, bodyText } = parsePlainEmailTemplate(
+    draft.emailTemplate,
+  );
   const resumePdfUrl =
     draft.resumePdfId !== undefined
       ? await ctx.storage.getUrl(draft.resumePdfId)
@@ -85,7 +72,9 @@ async function mailPayload(ctx: ActionCtx, itemId: Id<'sendQueue'>) {
     draft,
     to: toAddress,
     subject: redirected ? `[Draft for ${draft.item.to}] ${subject}` : subject,
-    text: redirected ? `Original recipient: ${draft.item.to}\n\n${body}` : body,
+    text: redirected
+      ? `Original recipient: ${draft.item.to}\n\n${bodyText}`
+      : bodyText,
     ...(attachment !== undefined ? { attachments: [attachment] } : {}),
   };
 }

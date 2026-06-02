@@ -7,6 +7,7 @@ Generate a personalized cold email for the target company using the exact struct
 
 INPUTS:
 Company name: [COMPANY_NAME] (provided as "Target Company" in the user message)
+Industry: [INDUSTRY] (provided as "Industry" in the user message) — use this as the company's sector focus rather than guessing from the name.
 Candidate profile: provided below as "CANDIDATE RESUME(S)" — treat it as the single source of truth for the candidate's experience.
 
 STYLE RULES:
@@ -19,8 +20,8 @@ STYLE RULES:
 
    * Avoid: React, Plotly, Arduino, I2C, Claude, Google Sheets, Jest, Supabase, etc.
    * Prefer broader use-case language: workflow automation, signal acquisition, lab measurement tooling, patient-data workflows, medical-device prototyping, automated validation, real-time monitoring.
-6. Do not invent company achievements. Only reference the company in broad, sector-appropriate terms inferable from its name.
-7. Infer a plausible target role/sector for the candidate based on the resume(s) and the company, and use that phrase consistently in the body.
+6. Do not invent company achievements. Reference the company in broad, sector-appropriate terms based on the provided Industry; only fall back to inferring from the name if no Industry is given.
+7. Infer a plausible target role/sector for the candidate based on the resume(s), the company, and the provided Industry, and use that phrase consistently in the body.
 8. The experience phrase should contain 3–4 broad, relevant use-case areas drawn from the candidate resume(s) below.
 9. Output only the email body. Do not include a subject line ("Subject:") — the subject is generated separately. No explanations.
 

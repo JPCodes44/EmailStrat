@@ -28,6 +28,7 @@ function renderModal(
     onDiscard: vi.fn(),
     onEdit: vi.fn(),
     onApprove: vi.fn(),
+    onShowResume: vi.fn(),
     ...overrides,
   };
   render(<EmailDraftCarouselModal {...props} />);
@@ -47,6 +48,15 @@ describe('EmailDraftCarouselModal', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Next draft' }));
     expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the résumé preview when the active card attachment is clicked', async () => {
+    // Active draft (index 0) carries the attachment chip.
+    const { onShowResume } = renderModal({ activeIndex: 0 });
+    await userEvent.click(
+      screen.getByRole('button', { name: 'View résumé a.pdf' }),
+    );
+    expect(onShowResume).toHaveBeenCalledTimes(1);
   });
 
   it('disables Previous on the first draft', () => {

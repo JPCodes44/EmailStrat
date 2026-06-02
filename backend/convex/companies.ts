@@ -1,10 +1,21 @@
 import { v } from 'convex/values';
 // `./_generated/server` is produced by `bunx convex dev`. Until you run it once,
 // this import will not resolve — that is expected for a fresh checkout.
-import { action, mutation, query } from './_generated/server';
+import {
+  action,
+  internalQuery,
+  mutation,
+  query,
+  type ActionCtx,
+} from './_generated/server';
 import { internal } from './_generated/api';
 import { computeCostUsd, GEMINI_GROUNDING_EST_USD } from './pricing';
 import { runGeminiWithFallback } from './gemini';
+import {
+  normalizeCompanyDomain,
+  slugify,
+  stripMarkdownCodeFence,
+} from '@emailstrat/common';
 
 interface ResearchArgs {
   keywords?: string;
@@ -48,14 +59,6 @@ function getDeploymentEnv(): Record<string, string | undefined> {
   return runtime.process?.env ?? {};
 }
 
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
 function normalizeCompany(
   company: CompanyResearchCandidate,
 ): CompanyResearchResult {
@@ -76,16 +79,36 @@ function normalizeCompany(
   };
 }
 
+async function filterPreviouslyEmailed(
+  ctx: ActionCtx,
+  companies: CompanyResearchResult[],
+): Promise<CompanyResearchResult[]> {
+  const fresh: CompanyResearchResult[] = [];
+  const seenDomains = new Set<string>();
+
+  for (const company of companies) {
+    const normalizedDomain = normalizeCompanyDomain(company.domain);
+    if (normalizedDomain.length === 0 || seenDomains.has(normalizedDomain)) {
+      continue;
+    }
+    seenDomains.add(normalizedDomain);
+
+    const emailed = await ctx.runQuery(internal.companies.hasEmailedDomain, {
+      normalizedDomain,
+    });
+    if (!emailed) fresh.push(company);
+  }
+
+  return fresh;
+}
+
 function parseResearchResponse(
   text: string | undefined,
 ): CompanyResearchCandidate[] {
   if (text === undefined || text.length === 0) {
     throw new Error('Gemini returned no company research output.');
   }
-  const json = text
-    .trim()
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```$/, '');
+  const json = stripMarkdownCodeFence(text, 'json');
   const parsed = JSON.parse(json) as { companies: CompanyResearchCandidate[] };
   return parsed.companies;
 }
@@ -136,6 +159,9 @@ export const research = action({
     limit: v.number(),
   },
   handler: async (ctx, args): Promise<CompanyResearchResponse> => {
+    const requestedLimit = Math.max(1, Math.floor(args.limit));
+    const discoveryLimit = Math.min(requestedLimit * 2, 100);
+    const researchArgs = { ...args, limit: discoveryLimit };
     const env = getDeploymentEnv();
     const freeKey = env.GEMINI_API_KEY;
     if (freeKey === undefined || freeKey.length === 0) {
@@ -154,7 +180,7 @@ export const research = action({
       paidKey,
       params: {
         model,
-        contents: buildResearchContents(args),
+        contents: buildResearchContents(researchArgs),
         // Google Search grounding for live, current company discovery.
         config: { tools: [{ googleSearch: {} }] },
       },
@@ -183,9 +209,13 @@ export const research = action({
       console.error('Gemini usage tracking failed:', trackErr);
     }
 
-    const companies = parseResearchResponse(result.text)
-      .slice(0, args.limit)
+    const candidates = parseResearchResponse(result.text)
+      .slice(0, discoveryLimit)
       .map(normalizeCompany);
+    const companies = (await filterPreviouslyEmailed(ctx, candidates)).slice(
+      0,
+      requestedLimit,
+    );
 
     return { companies, total: companies.length };
   },
@@ -204,6 +234,21 @@ export const research = action({
     ),
     total: v.number(),
   }),
+});
+
+/** Domain lookup used by research filtering without exposing the full history. */
+export const hasEmailedDomain = internalQuery({
+  args: { normalizedDomain: v.string() },
+  returns: v.boolean(),
+  handler: async (ctx, { normalizedDomain }) => {
+    const existing = await ctx.db
+      .query('emailedCompanies')
+      .withIndex('by_normalizedDomain', (q) =>
+        q.eq('normalizedDomain', normalizedDomain),
+      )
+      .unique();
+    return existing !== null;
+  },
 });
 
 /** Fields persisted for an imported company (the frontend `Company` shape). */

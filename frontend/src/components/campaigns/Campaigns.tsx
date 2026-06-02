@@ -8,8 +8,10 @@ import {
   GenerationFailedModal,
   EmptySelectionModal,
   EmailTemplateModal,
-  ResumePdfModal,
+  CompanyResumeModal,
 } from '../modals';
+import { getCompanyArtifactQuery } from '../modals/CompanyResumeModal';
+import { useSetSelection } from '../shared/useSetSelection';
 import { draftStatusThemes } from './status';
 import type {
   CampaignCompany,
@@ -28,6 +30,7 @@ const generateArtifactsAction = makeFunctionReference<
     companies: {
       id: string;
       name: string;
+      industry: string;
     }[];
   },
   void
@@ -66,12 +69,6 @@ const clearSubjectsMutation = makeFunctionReference<
   { externalIds: string[] },
   null
 >('companies:clearSubjects');
-
-const getCompanyArtifactQuery = makeFunctionReference<
-  'query',
-  { companyId: string },
-  { emailTemplate: string; resumePdfUrl: string | null } | null
->('companies:getCompanyArtifact');
 
 export function GenerateButton({
   onClick,
@@ -548,11 +545,16 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<DraftStatus | 'all'>('all');
   const [activeId, setActiveId] = useState<string | undefined>(undefined);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const {
+    selectedIds,
+    clearSelected,
+    toggleSelected,
+    toggleAll: toggleAllSelected,
+  } = useSetSelection<string>();
   const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
   const [generatedCount, setGeneratedCount] = useState<number | null>(null);
   const [genFailure, setGenFailure] = useState<{
-    targets: { id: string; name: string }[];
+    targets: { id: string; name: string; industry: string }[];
   } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
@@ -567,7 +569,9 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
   const companyRows = useQuery(listCampaignCompaniesQuery, {});
   const artifact = useQuery(
     getCompanyArtifactQuery,
-    artifactView !== null ? { companyId: artifactView.companyId } : 'skip',
+    artifactView?.kind === 'template'
+      ? { companyId: artifactView.companyId }
+      : 'skip',
   );
   const importedCompanies = useMemo(() => companyRows ?? [], [companyRows]);
   const generateArtifacts = useAction(generateArtifactsAction);
@@ -609,11 +613,17 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
   // Generate one company's artifacts, owning its own row-shimmer lifecycle so
   // multiple companies can generate in parallel and settle independently.
   // Rejects on failure; callers aggregate outcomes via Promise.allSettled.
-  const generateOne = async (company: { id: string; name: string }) => {
+  const generateOne = async (company: {
+    id: string;
+    name: string;
+    industry: string;
+  }) => {
     setGeneratingIds((prev) => new Set(prev).add(company.id));
     try {
       await generateArtifacts({
-        companies: [{ id: company.id, name: company.name }],
+        companies: [
+          { id: company.id, name: company.name, industry: company.industry },
+        ],
       });
     } finally {
       setGeneratingIds((prev) => {
@@ -626,7 +636,9 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
 
   // Run a batch in parallel; show the success modal, or the failure modal
   // (with the failed companies, so Retry can re-run just those).
-  const runGeneration = async (targets: { id: string; name: string }[]) => {
+  const runGeneration = async (
+    targets: { id: string; name: string; industry: string }[],
+  ) => {
     if (targets.length === 0) return;
     const results = await Promise.allSettled(
       targets.map((c) => generateOne(c)),
@@ -649,14 +661,18 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
     const selected = selectedAll.filter(
       (c) => c.status !== 'drafted' && !generatingIds.has(c.id),
     );
-    await runGeneration(selected.map((c) => ({ id: c.id, name: c.name })));
+    await runGeneration(
+      selected.map((c) => ({ id: c.id, name: c.name, industry: c.industry })),
+    );
   };
 
   const handleGenerateSingle = async (companyId: string) => {
     if (generatingIds.has(companyId)) return;
     const company = importedCompanies.find((c) => c.id === companyId);
     if (!company || company.status === 'drafted') return;
-    await runGeneration([{ id: company.id, name: company.name }]);
+    await runGeneration([
+      { id: company.id, name: company.name, industry: company.industry },
+    ]);
   };
 
   const handleDelete = () => {
@@ -675,7 +691,7 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
     setGenError(null);
     try {
       await deleteCompanies({ externalIds: ids });
-      setSelectedIds(new Set());
+      clearSelected();
     } catch (error) {
       console.error('Delete failed:', error);
       setGenError(
@@ -738,25 +754,14 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
     }
   };
 
-  function toggleSelected(id: string) {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
-
   function toggleAll() {
-    setSelectedIds((current) => {
-      if (current.size === filteredCompanies.length) {
-        return new Set();
-      }
-      return new Set(filteredCompanies.map((company) => company.id));
-    });
+    const allSelected =
+      filteredCompanies.length > 0 &&
+      filteredCompanies.every((company) => selectedIds.has(company.id));
+    toggleAllSelected(
+      filteredCompanies.map((company) => company.id),
+      allSelected,
+    );
   }
 
   const openArtifact = (kind: 'template' | 'resume') => (id: string) => {
@@ -848,10 +853,9 @@ export function CampaignsScreen({ onViewDraftReview }: CampaignsScreenProps) {
         />
       ) : null}
       {artifactView !== null && artifactView.kind === 'resume' ? (
-        <ResumePdfModal
+        <CompanyResumeModal
+          companyId={artifactView.companyId}
           companyName={artifactView.name}
-          pdfUrl={artifact?.resumePdfUrl ?? null}
-          loading={artifact === undefined}
           onClose={() => setArtifactView(null)}
         />
       ) : null}

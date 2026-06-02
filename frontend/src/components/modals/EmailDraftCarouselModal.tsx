@@ -10,6 +10,8 @@ interface EmailDraftCardProps {
   onDiscard?: () => void;
   onEdit?: () => void;
   onApprove?: () => void;
+  /** When set, the résumé chip becomes a button opening the PDF preview. */
+  onShowResume?: () => void;
 }
 
 /** A single email-draft card (the centered active one, or a dimmed peek). */
@@ -20,6 +22,7 @@ function EmailDraftCard({
   onDiscard,
   onEdit,
   onApprove,
+  onShowResume,
 }: EmailDraftCardProps) {
   return (
     <article
@@ -39,10 +42,22 @@ function EmailDraftCard({
           <span className="emailCardSubject">{draft.subject}</span>
         </div>
         {draft.attachmentName !== undefined ? (
-          <span className="emailCardAttachment">
-            <Icon name="description" size={16} />
-            {draft.attachmentName}
-          </span>
+          onShowResume !== undefined ? (
+            <button
+              type="button"
+              className="emailCardAttachment"
+              aria-label={`View résumé ${draft.attachmentName}`}
+              onClick={onShowResume}
+            >
+              <Icon name="description" size={16} />
+              {draft.attachmentName}
+            </button>
+          ) : (
+            <span className="emailCardAttachment">
+              <Icon name="description" size={16} />
+              {draft.attachmentName}
+            </span>
+          )
         ) : null}
       </header>
       <div className="emailCardBody">
@@ -96,6 +111,7 @@ export function EmailDraftCarouselModal({
   onDiscard,
   onEdit,
   onApprove,
+  onShowResume,
 }: EmailDraftCarouselModalProps) {
   const active = drafts[activeIndex];
   if (active === undefined) return null;
@@ -135,6 +151,7 @@ export function EmailDraftCarouselModal({
             onDiscard={() => onDiscard(active.id)}
             onEdit={() => onEdit(active.id)}
             onApprove={() => onApprove(active.id)}
+            onShowResume={onShowResume}
           />
           {next !== undefined ? (
             <EmailDraftCard draft={next} variant="peek" />

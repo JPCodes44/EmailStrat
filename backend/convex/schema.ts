@@ -76,6 +76,19 @@ export default defineSchema({
     createdAt: v.string(),
   }).index('by_externalId', ['externalId']),
   /**
+   * Persistent history of companies with at least one successfully sent email.
+   * This survives active-pipeline cleanup and lets discovery filter locally
+   * without injecting the full history into an LLM prompt.
+   */
+  emailedCompanies: defineTable({
+    normalizedDomain: v.string(),
+    domain: v.string(),
+    name: v.string(),
+    firstSentAt: v.string(),
+    lastSentAt: v.string(),
+    sentCount: v.number(),
+  }).index('by_normalizedDomain', ['normalizedDomain']),
+  /**
    * Per-provider API credit tracker, one row per provider, surfaced in the
    * navbar. `balanceUsd` is remaining $ (DeepSeek real; OpenAI + Gemini-paid
    * estimated from token usage). The Gemini free key has no dollar cost, so it

@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
+import { nonEmptyStrings, parsePlainEmailTemplate } from '@emailstrat/common';
 
 /** Rows for the Email Table: one per drafted company. */
 export const listEmailTableRows = query({
@@ -75,27 +76,6 @@ export const listCompaniesWithEmails = query({
   },
 });
 
-/** Split a stored email template into a fallback subject line and body paragraphs. */
-function parseEmailTemplate(template: string): {
-  subjectLine: string | null;
-  body: string[];
-} {
-  const trimmed = template.trim();
-  const lines = trimmed.split('\n');
-  let subjectLine: string | null = null;
-  let rest = trimmed;
-  const first = lines[0]?.trim() ?? '';
-  if (/^subject:/i.test(first)) {
-    subjectLine = first.replace(/^subject:\s*/i, '').trim();
-    rest = lines.slice(1).join('\n').trim();
-  }
-  const body = rest
-    .split(/\n{2,}/)
-    .map((paragraph) => paragraph.trim())
-    .filter((paragraph) => paragraph.length > 0);
-  return { subjectLine, body };
-}
-
 /**
  * The clicked company's email cards for the review carousel — one per non-empty
  * recipient email (To = a single address), each carrying the generated subject,
@@ -115,7 +95,7 @@ export const getCompanyEmailDrafts = query({
       .withIndex('by_companyId', (q) => q.eq('companyId', companyId))
       .unique();
 
-    const { subjectLine, body } = parseEmailTemplate(
+    const { subjectLine, bodyParagraphs } = parsePlainEmailTemplate(
       artifact?.emailTemplate ?? '',
     );
     const subject =
@@ -125,15 +105,17 @@ export const getCompanyEmailDrafts = query({
         ? `${company.name}_Resume.pdf`
         : undefined;
 
-    const emails = [company.email1, company.email2, company.email3]
-      .map((email) => email?.trim() ?? '')
-      .filter((email) => email.length > 0);
+    const emails = nonEmptyStrings([
+      company.email1,
+      company.email2,
+      company.email3,
+    ]);
 
     return emails.map((to, index) => ({
       id: `${companyId}-${index}`,
       to,
       subject,
-      body,
+      body: bodyParagraphs,
       ...(attachmentName !== undefined ? { attachmentName } : {}),
     }));
   },

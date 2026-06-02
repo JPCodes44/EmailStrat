@@ -3,6 +3,8 @@ import { useQuery } from 'convex/react';
 import { makeFunctionReference } from 'convex/server';
 import { Icon } from '../outreach/Common';
 import { EmailDraftCarouselModal } from '../modals/EmailDraftCarouselModal';
+import { CompanyResumeModal } from '../modals';
+import { useSetSelection } from '../shared/useSetSelection';
 import type { EmailDraft } from '../modals/types';
 import { statusOptions } from './data';
 import type {
@@ -540,11 +542,17 @@ export function DraftReviewScreen({
   const rows = useQuery(listCompaniesWithEmailsQuery, {});
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const {
+    selectedIds,
+    toggleSelected,
+    toggleAll: toggleAllSelected,
+  } = useSetSelection<string>();
   // The clicked row: highlights it AND opens the review carousel. Closing the
   // modal clears it, so the highlight disappears as the modal fades away.
   const [activeId, setActiveId] = useState<string | undefined>(undefined);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  // Opens the shared résumé-PDF modal for the active company's attachment.
+  const [resumeOpen, setResumeOpen] = useState(false);
 
   // Fetch the active company's email cards only while a row is open; switching
   // to 'skip' on close tears the subscription down (the requested cleanup).
@@ -560,32 +568,7 @@ export function DraftReviewScreen({
 
   function closeModal() {
     setActiveId(undefined);
-  }
-
-  function toggleSelected(id: string) {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
-
-  function toggleSelectAll(ids: string[], everySelected: boolean) {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      for (const id of ids) {
-        if (everySelected) {
-          next.delete(id);
-        } else {
-          next.add(id);
-        }
-      }
-      return next;
-    });
+    setResumeOpen(false);
   }
 
   const visibleRows = useMemo(() => {
@@ -611,6 +594,9 @@ export function DraftReviewScreen({
     visibleRows.length > 0 &&
     visibleRows.every((row) => selectedIds.has(row.companyId));
 
+  const activeCompanyName =
+    (rows ?? []).find((row) => row.companyId === activeId)?.company ?? '';
+
   return (
     <section className="draftScreen">
       <div className="draftHeader">
@@ -635,7 +621,7 @@ export function DraftReviewScreen({
         onSelect={openRow}
         onToggleSelected={toggleSelected}
         onToggleAll={() =>
-          toggleSelectAll(
+          toggleAllSelected(
             visibleRows.map((row) => row.companyId),
             allSelected,
           )
@@ -669,6 +655,14 @@ export function DraftReviewScreen({
           onDiscard={closeModal}
           onEdit={() => undefined}
           onApprove={closeModal}
+          onShowResume={() => setResumeOpen(true)}
+        />
+      ) : null}
+      {resumeOpen && activeId !== undefined ? (
+        <CompanyResumeModal
+          companyId={activeId}
+          companyName={activeCompanyName}
+          onClose={() => setResumeOpen(false)}
         />
       ) : null}
     </section>

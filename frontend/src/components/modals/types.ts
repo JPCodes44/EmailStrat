@@ -183,4 +183,6 @@ export interface EmailDraftCarouselModalProps {
   onDiscard: (id: string) => void;
   onEdit: (id: string) => void;
   onApprove: (id: string) => void;
+  /** Open the résumé-PDF preview for the active card's company. */
+  onShowResume: () => void;
 }

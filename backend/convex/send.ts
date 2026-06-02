@@ -8,17 +8,13 @@ import {
 } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
+import {
+  extractSubjectLine,
+  nonEmptyStrings,
+  normalizeCompanyDomain,
+} from '@emailstrat/common';
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-
-/** Pull a leading "Subject:" line out of an email template, if present. */
-function parseSubjectLine(template: string | undefined): string | null {
-  if (template === undefined) return null;
-  const first = template.trim().split('\n')[0]?.trim() ?? '';
-  return /^subject:/i.test(first)
-    ? first.replace(/^subject:\s*/i, '').trim()
-    : null;
-}
 
 /** A company doc's non-empty recipient emails (email1/2/3). */
 function recipientEmails(company: {
@@ -26,9 +22,7 @@ function recipientEmails(company: {
   email2?: string;
   email3?: string;
 }): string[] {
-  return [company.email1, company.email2, company.email3]
-    .map((email) => email?.trim() ?? '')
-    .filter((email) => email.length > 0);
+  return nonEmptyStrings([company.email1, company.email2, company.email3]);
 }
 
 /** Per-company preview for the Schedule Submission screen. */
@@ -106,7 +100,7 @@ export const enqueueSend = mutation({
         .unique();
       const subject =
         artifact?.emailSubject ??
-        parseSubjectLine(artifact?.emailTemplate) ??
+        extractSubjectLine(artifact?.emailTemplate) ??
         `Outreach to ${company.name}`;
 
       for (const to of emails) {
@@ -176,7 +170,7 @@ export const enqueueDrafts = mutation({
         .unique();
       const subject =
         artifact?.emailSubject ??
-        parseSubjectLine(artifact?.emailTemplate) ??
+        extractSubjectLine(artifact?.emailTemplate) ??
         `Outreach to ${company.name}`;
 
       for (const to of emails) {
@@ -368,6 +362,49 @@ async function refreshCompanyStatusAfterUnschedule(
   }
 }
 
+async function recordEmailedCompany(
+  ctx: MutationCtx,
+  item: {
+    companyId: string;
+    company: string;
+  },
+  sentAt: string,
+) {
+  const company = await ctx.db
+    .query('companies')
+    .withIndex('by_externalId', (q) => q.eq('externalId', item.companyId))
+    .unique();
+  const domain = company?.domain ?? item.companyId;
+  const normalizedDomain = normalizeCompanyDomain(domain);
+  if (normalizedDomain.length === 0) return;
+
+  const existing = await ctx.db
+    .query('emailedCompanies')
+    .withIndex('by_normalizedDomain', (q) =>
+      q.eq('normalizedDomain', normalizedDomain),
+    )
+    .unique();
+
+  if (existing === null) {
+    await ctx.db.insert('emailedCompanies', {
+      normalizedDomain,
+      domain,
+      name: company?.name ?? item.company,
+      firstSentAt: sentAt,
+      lastSentAt: sentAt,
+      sentCount: 1,
+    });
+    return;
+  }
+
+  await ctx.db.patch(existing._id, {
+    domain,
+    name: company?.name ?? item.company,
+    lastSentAt: sentAt,
+    sentCount: existing.sentCount + 1,
+  });
+}
+
 /** Remove unsent queue rows. */
 export const removeQueueItems = internalMutation({
   args: { itemIds: v.array(v.id('sendQueue')) },
@@ -414,11 +451,13 @@ export const markQueueItemSent = internalMutation({
     const item = await ctx.db.get(itemId);
     if (item === null) return;
 
+    const sentAt = new Date().toISOString();
     await ctx.db.patch(itemId, {
       status: 'sent',
-      sentAt: new Date().toISOString(),
+      sentAt,
       error: undefined,
     });
+    await recordEmailedCompany(ctx, item, sentAt);
     await rollUpCompanyStatus(ctx, item.companyId);
   },
 });

@@ -19,6 +19,7 @@ import {
   buildCompanyResearchCriteria,
   researchCompanies,
 } from './companyResearchApi';
+import { useSetSelection } from '../shared/useSetSelection';
 import type { Company, FilterChipModel, SelectOption } from './types';
 
 /** Persisted shape for an imported company (mirrors the backend validator). */
@@ -107,39 +108,41 @@ export function OutreachProvider({ children }: { children: ReactNode }) {
   const [matches, setMatches] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | undefined>();
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const {
+    selectedIds,
+    clearSelected,
+    toggleSelected,
+    toggleAll: toggleAllSelected,
+  } = useSetSelection<string>();
   const [importModal, setImportModal] = useState<ImportModalState>(null);
   const importCompanies = useMutation(importCompaniesMutation);
 
   const dismissImportModal = useCallback(() => setImportModal(null), []);
 
-  const toggleRow = useCallback((id: string) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
+  const toggleRow = useCallback(
+    (id: string) => {
+      toggleSelected(id);
+    },
+    [toggleSelected],
+  );
 
   const toggleAll = useCallback(() => {
-    setSelectedIds((current) =>
-      current.size === resultCompanies.length
-        ? new Set()
-        : new Set(resultCompanies.map((c) => c.id)),
+    const allSelected =
+      resultCompanies.length > 0 &&
+      resultCompanies.every((company) => selectedIds.has(company.id));
+    toggleAllSelected(
+      resultCompanies.map((company) => company.id),
+      allSelected,
     );
-  }, [resultCompanies]);
+  }, [resultCompanies, selectedIds, toggleAllSelected]);
 
   const clearSelectedResults = useCallback(() => {
     setResultCompanies((current) =>
       current.filter((company) => !selectedIds.has(company.id)),
     );
     setMatches((current) => Math.max(current - selectedIds.size, 0));
-    setSelectedIds(new Set());
-  }, [selectedIds]);
+    clearSelected();
+  }, [selectedIds, clearSelected]);
 
   const importToCampaign = useCallback(async () => {
     const selected = resultCompanies.filter((c) => selectedIds.has(c.id));
@@ -287,7 +290,7 @@ export function OutreachProvider({ children }: { children: ReactNode }) {
       );
       setResultCompanies(result.companies);
       setMatches(result.total);
-      setSelectedIds(new Set());
+      clearSelected();
     } catch (cause) {
       const message =
         cause instanceof Error ? cause.message : 'Company research failed';
@@ -304,6 +307,7 @@ export function OutreachProvider({ children }: { children: ReactNode }) {
     region,
     city,
     companyLimit,
+    clearSelected,
   ]);
 
   const value = useMemo(

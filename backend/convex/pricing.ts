@@ -1,6 +1,7 @@
 // Pricing constants + cost estimation for the per-provider balance tracker.
 // Plain module (no node-only APIs) so it can be imported by both the Node
 // actions (artifacts.ts) and the regular query/mutation runtime (usageDb.ts).
+import { timeZoneOffsetMs } from '@emailstrat/common';
 
 /** USD per 1M tokens, per model. DeepSeek is omitted — it reports a real balance. */
 export const MODEL_PRICING: Record<
@@ -41,31 +42,6 @@ export const GEMINI_GROUNDING_EST_USD = 0.05;
 /** Gemini free-tier daily request cap for gemini-2.5-flash. */
 export const GEMINI_FREE_DAILY_LIMIT = 20;
 
-/** Offset (ms) to add to a UTC instant to get the wall-clock time in `tz`. */
-function tzOffsetMs(date: Date, tz: string): number {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    hour12: false,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).formatToParts(date);
-  const part = (type: Intl.DateTimeFormatPartTypes): number =>
-    Number(parts.find((entry) => entry.type === type)?.value ?? 0);
-  const asUtc = Date.UTC(
-    part('year'),
-    part('month') - 1,
-    part('day'),
-    part('hour'),
-    part('minute'),
-    part('second'),
-  );
-  return asUtc - date.getTime();
-}
-
 /**
  * ISO timestamp of the next midnight in America/Los_Angeles — the boundary at
  * which Gemini's free-tier daily quota resets. (May be off by an hour for the
@@ -73,7 +49,7 @@ function tzOffsetMs(date: Date, tz: string): number {
  */
 export function nextPacificMidnightIso(now: Date = new Date()): string {
   const tz = 'America/Los_Angeles';
-  const offset = tzOffsetMs(now, tz);
+  const offset = timeZoneOffsetMs(now, tz);
   // Today's Pacific wall-clock date.
   const pacificNow = new Date(now.getTime() + offset);
   // Tomorrow 00:00 expressed as a wall-clock value, then back to a UTC instant.

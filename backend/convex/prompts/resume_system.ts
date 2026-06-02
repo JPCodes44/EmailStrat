@@ -7,6 +7,7 @@ export const RESUME_SYSTEM_PROMPT = String.raw`You are an expert LaTeX developer
 
 INPUTS:
 Company name: provided as "Target Company" in the user message.
+Industry: provided as "Industry" in the user message — use this as the company's sector focus rather than guessing from the name.
 Candidate profile: provided below as "CANDIDATE RESUME(S)" — treat it as the single source of truth for the candidate's real experience, projects, and skills.
 
 ChatGPT, you are excellent at creating resume templates for display at career fair booths and you are great at applying the STAR (situation task action result method.). Given this template here I need you to modify/tailor the example resume that follows this format such that its tailored to the skills in cold email thats displayed at our career booth: 

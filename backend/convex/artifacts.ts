@@ -11,6 +11,7 @@ import { SUBJECT_SYSTEM_PROMPT } from './prompts/subject_system';
 import { CANDIDATE_RESUMES } from './resumes';
 import { computeCostUsd } from './pricing';
 import { runGeminiWithFallback } from './gemini';
+import { stripMarkdownCodeFence } from '@emailstrat/common';
 
 const EMAIL_MODEL = 'gpt-4o-mini';
 const RESUME_MODEL = 'gpt-5.4-mini';
@@ -19,14 +20,6 @@ const SUBJECT_MODEL =
   process.env.GEMINI_SUBJECT_MODEL ?? 'gemini-2.5-flash-lite';
 /** Lightest GPT model, used as the final subject fallback. */
 const SUBJECT_FALLBACK_MODEL = 'gpt-4o-mini';
-
-/** Strip any markdown code fences a model wraps the LaTeX in. */
-function stripCodeFences(text: string): string {
-  return text
-    .replace(/^\s*```(?:latex|tex)?\s*\n?/i, '')
-    .replace(/\n?```\s*$/i, '')
-    .trim();
-}
 
 /** Compile LaTeX to PDF bytes via the ytotech LaTeX-as-a-service API. */
 async function compileLatexToPdf(latex: string): Promise<ArrayBuffer> {
@@ -141,6 +134,7 @@ export const generateForCompanies = action({
       v.object({
         id: v.string(),
         name: v.string(),
+        industry: v.string(),
       }),
     ),
   },
@@ -158,11 +152,13 @@ export const generateForCompanies = action({
     const profileBlock = `\n\nCANDIDATE RESUME(S):\n${CANDIDATE_RESUMES}`;
     const emailSystem = `${EMAIL_SYSTEM_PROMPT}${profileBlock}\n\nReturn ONLY the body of the email.`;
 
-    const dataTemplate = `Target Company: {{name}}`;
+    const dataTemplate = `Target Company: {{name}}\nIndustry: {{industry}}`;
 
     for (const company of companies) {
       try {
-        const userData = dataTemplate.replace('{{name}}', company.name);
+        const userData = dataTemplate
+          .replace('{{name}}', company.name)
+          .replace('{{industry}}', company.industry);
 
         // 1. Generate the cold email first.
         const emailRes = await openai.chat.completions.create({
@@ -190,8 +186,9 @@ export const generateForCompanies = action({
             { role: 'user', content: userData },
           ],
         });
-        const resumeLatex = stripCodeFences(
+        const resumeLatex = stripMarkdownCodeFence(
           resumeRes.choices[0]?.message.content || '',
+          'latex|tex',
         );
 
         // 4. Compile the resume LaTeX to a PDF and store it. A compile failure

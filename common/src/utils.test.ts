@@ -3,10 +3,17 @@ import type { EmailTemplate } from './types';
 import {
   apiFetch,
   escapeHtml,
+  extractSubjectLine,
+  nonEmptyStrings,
+  normalizeCompanyDomain,
   nowIso,
+  parsePlainEmailTemplate,
   renderToHtml,
   slugify,
+  stripMarkdownCodeFence,
+  timeZoneOffsetMs,
   validateTemplate,
+  zonedWallTimeToUtcMs,
 } from './utils';
 
 function makeTemplate(overrides: Partial<EmailTemplate> = {}): EmailTemplate {
@@ -106,6 +113,70 @@ describe('slugify', () => {
 
   it('collapses runs of separators', () => {
     expect(slugify('A -- B__C')).toBe('a-b-c');
+  });
+});
+
+describe('stripMarkdownCodeFence', () => {
+  it('strips a surrounding fenced block', () => {
+    expect(stripMarkdownCodeFence('```json\n{"ok":true}\n```')).toBe(
+      '{"ok":true}',
+    );
+  });
+
+  it('can restrict the accepted language label', () => {
+    expect(stripMarkdownCodeFence('```latex\nx\n```', 'latex|tex')).toBe('x');
+  });
+});
+
+describe('normalizeCompanyDomain', () => {
+  it('normalizes protocol, casing, www prefix, and paths', () => {
+    expect(normalizeCompanyDomain(' HTTPS://WWW.Acme.com/careers ')).toBe(
+      'acme.com',
+    );
+  });
+
+  it('removes ports and trailing dots', () => {
+    expect(normalizeCompanyDomain('example.com.:443/jobs')).toBe('example.com');
+  });
+
+  it('returns an empty key for blank input', () => {
+    expect(normalizeCompanyDomain('   ')).toBe('');
+  });
+});
+
+describe('plain email helpers', () => {
+  it('extracts a leading subject line', () => {
+    expect(extractSubjectLine('Subject: Hello\n\nBody')).toBe('Hello');
+    expect(extractSubjectLine('Hello\n\nBody')).toBeNull();
+    expect(extractSubjectLine(undefined)).toBeNull();
+  });
+
+  it('splits template body text into paragraphs', () => {
+    expect(
+      parsePlainEmailTemplate('Subject: Hi\n\nFirst paragraph\n\nSecond'),
+    ).toEqual({
+      subjectLine: 'Hi',
+      bodyText: 'First paragraph\n\nSecond',
+      bodyParagraphs: ['First paragraph', 'Second'],
+    });
+  });
+
+  it('trims and filters non-empty strings', () => {
+    expect(nonEmptyStrings([' a ', undefined, '', 'b'])).toEqual(['a', 'b']);
+  });
+});
+
+describe('timezone helpers', () => {
+  it('converts UTC wall time without an offset', () => {
+    expect(zonedWallTimeToUtcMs('2026-01-02', '03:04', 'UTC')).toBe(
+      Date.UTC(2026, 0, 2, 3, 4),
+    );
+  });
+
+  it('computes a stable UTC timezone offset', () => {
+    expect(timeZoneOffsetMs(new Date('2026-01-01T00:00:00.000Z'), 'UTC')).toBe(
+      0,
+    );
   });
 });
 

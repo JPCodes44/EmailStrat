@@ -834,6 +834,18 @@
   color: #434655;
 }
 
+button.emailCardAttachment {
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+button.emailCardAttachment:hover {
+  border-color: #8a8fa8;
+  background: #f4f5fa;
+}
+
 .emailCardBody {
   flex: 1;
   overflow-y: auto;
