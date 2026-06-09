@@ -18,5 +18,20 @@ describe('EmailTableScreen', () => {
     expect(container.querySelector('#email-hot-table')).toBeInTheDocument();
     // No drafted companies under the test client.
     expect(screen.getByText('0 companies')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Sent' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Failed' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Not sent' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Not drafted' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Delete filtered' }),
+    ).toBeDisabled();
   });
 });

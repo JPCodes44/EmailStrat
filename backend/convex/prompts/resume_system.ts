@@ -3,12 +3,11 @@
 
 // `String.raw` keeps the embedded LaTeX backslashes (\usepackage, \textbf, …)
 // literal — in a normal template literal they'd be parsed as JS escape sequences.
-export const RESUME_SYSTEM_PROMPT = String.raw`You are an expert LaTeX developer and career coach.
+export const RESUME_SYSTEM_PROMPT = String.raw`
 
 INPUTS:
 Company name: provided as "Target Company" in the user message.
 Industry: provided as "Industry" in the user message — use this as the company's sector focus rather than guessing from the name.
-Candidate profile: provided below as "CANDIDATE RESUME(S)" — treat it as the single source of truth for the candidate's real experience, projects, and skills.
 
 ChatGPT, you are excellent at creating resume templates for display at career fair booths and you are great at applying the STAR (situation task action result method.). Given this template here I need you to modify/tailor the example resume that follows this format such that its tailored to the skills in cold email thats displayed at our career booth: 
 
@@ -143,22 +142,18 @@ BASc. Nanotechnology Engineering, Combinatorics \& Optimization Minor \hfill Exp
   for comfortable breathing and repeatable respiratory measurements.
   \end{itemize}
 
-\textbf{Field Engineering \& Data Analyst}\hfill Mississauga, ON\\
-\textit{Purolator Inc.}\hfill Sep 2023 -- Apr 2024
-\begin{itemize}\itemsep 1pt
-\item Directed peak-period route planning for 30+ delivery drivers
-  using Geotab and Area Planner, optimizing routes against traffic
-  conditions, package density, stop sequencing, and operational
-  constraints to improve daily delivery efficiency.
-    \item Collaborated with field and facility staff to resolve urgent
-  routing and execution issues in real time, using operational data and
-  on-the-ground context to adapt plans quickly and support smooth
-  day-to-day delivery performance.
-    \item Supported daily field operations by troubleshooting
-  driver-facing issues such as route misconfigurations, scanner
-  malfunctions, and conveyor belt stoppages, working closely with
-  coworkers to resolve problems quickly and reduce delivery disruptions.
-\end{itemize}
+\textbf{QA Developer \& Data Scientist} \hfill Mississauga, ON \\
+\textit{Purolator Inc.} \hfill Sep 2023 -- Apr 2024
+\begin{itemize}
+  \item Achieved a 20\% reduction in electricity costs by utilizing integer programs (IPs) for electric vehicle (EV) charging
+  for various routes, optimizing charging times based on grid demand and energy pricing, saving an estimated \$15k CAD
+  annually on three high demand routes.
+  \item Utilized Gurobi and NetworkX's data tools to present various visualizations during peak planning meetings with
+  operations by simplifying complex data, increasing positive feedback by about 30\% from operations.
+  \item Tested shipping/pickup workflows with Jest-Playwright e2e checks to surface timing inefficiencies, then built test-
+  driven Python ETL + KPI reporting scripts to standardize data entry and reduce production delays, improving operational
+  efficiency by 60\%.
+  \end{itemize}
 
 %==================== PROJECTS ====================
 \header{\textbf{Projects}}
@@ -191,7 +186,7 @@ For formatting the role name:
 
 - do not say [role name] Intern, instead say the actual role without the end word/level (intern).
 - be specific on the role! Do not put a vauge role like "sales development"
-- Please change up the content of the experiences if they do not quite match the role (remember this resume is for display purposes so it does not have to be honest) however do not make experiences that don't match what the company is about (e.g. if its a logistics company don't put healthcare, but you can change the contents in the companies category to match).
+- Please change up the content of the experiences if they do not quite match what the email is saying (remember this resume is for display purposes so it does not have to be honest).
 - Diamontech - Non invasive blood glucose monitoring startup in Berlin
 - Aerocardia - Health startup in Montreal that makes a breathlyzer to measure spo2 and vo2 max to act as a take home cardiologist.
 - Purolator - logistics and delivery company based in Canada.

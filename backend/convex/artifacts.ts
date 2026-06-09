@@ -147,7 +147,7 @@ export const generateForCompanies = action({
     // Email + résumé both run on OpenAI.
     const openai = new OpenAI({ apiKey });
 
-    // System prompts + combined candidate profile, bundled as TS constants so
+    // Email prompt + combined candidate profile, bundled as TS constants so
     // they ship with the function (loose .md files are not bundled by Convex).
     const profileBlock = `\n\nCANDIDATE RESUME(S):\n${CANDIDATE_RESUMES}`;
     const emailSystem = `${EMAIL_SYSTEM_PROMPT}${profileBlock}\n\nReturn ONLY the body of the email.`;
@@ -176,7 +176,7 @@ export const generateForCompanies = action({
         const resumeSystem = `${RESUME_SYSTEM_PROMPT.replace(
           '[COPIED EMAIL]',
           () => emailTemplate,
-        )}${profileBlock}\n\nReturn ONLY the raw LaTeX code. Do not include markdown code blocks or prose.`;
+        )}\n\nReturn ONLY the raw LaTeX code. Do not include markdown code blocks or prose.`;
 
         // 3. Generate the resume from the email-aware prompt.
         const resumeRes = await openai.chat.completions.create({

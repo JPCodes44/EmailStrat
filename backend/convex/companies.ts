@@ -11,6 +11,7 @@ import {
 import { internal } from './_generated/api';
 import { computeCostUsd, GEMINI_GROUNDING_EST_USD } from './pricing';
 import { runGeminiWithFallback } from './gemini';
+import { COMPANY_RESEARCH_SYSTEM_PROMPT } from './prompts/company_research_system';
 import {
   normalizeCompanyDomain,
   slugify,
@@ -24,6 +25,10 @@ interface ResearchArgs {
   location: string;
   techStack: string[];
   limit: number;
+}
+
+interface ResearchPromptArgs extends ResearchArgs {
+  excludedCompanyDomains: string[];
 }
 
 interface CompanyResearchCandidate {
@@ -114,12 +119,13 @@ function parseResearchResponse(
 }
 
 /** Build the grounded research request payload sent to Gemini. */
-function buildResearchContents(args: ResearchArgs): string {
+function buildResearchContents(args: ResearchPromptArgs): string {
+  const { excludedCompanyDomains, ...researchCriteria } = args;
   return JSON.stringify({
     role: 'company_research_request',
-    instruction:
-      'Research companies for outbound job-search outreach. Use Google Search grounding. Find companies that match the submitted criteria. Do not include blacklist logic. Return raw JSON only, with no markdown fences, no citations, and no prose.',
-    researchCriteria: args,
+    instruction: COMPANY_RESEARCH_SYSTEM_PROMPT,
+    researchCriteria,
+    excludedCompanyDomains,
     request: `Find ${args.limit} companies.`,
     responseShape: {
       companies: [
@@ -161,7 +167,15 @@ export const research = action({
   handler: async (ctx, args): Promise<CompanyResearchResponse> => {
     const requestedLimit = Math.max(1, Math.floor(args.limit));
     const discoveryLimit = Math.min(requestedLimit * 2, 100);
-    const researchArgs = { ...args, limit: discoveryLimit };
+    const excludedCompanyDomains = await ctx.runQuery(
+      internal.companies.listRecentlyEmailedDomains,
+      { limit: 200 },
+    );
+    const researchArgs = {
+      ...args,
+      limit: discoveryLimit,
+      excludedCompanyDomains,
+    };
     const env = getDeploymentEnv();
     const freeKey = env.GEMINI_API_KEY;
     if (freeKey === undefined || freeKey.length === 0) {
@@ -248,6 +262,20 @@ export const hasEmailedDomain = internalQuery({
       )
       .unique();
     return existing !== null;
+  },
+});
+
+/** Compact history used to steer grounded research away from old targets. */
+export const listRecentlyEmailedDomains = internalQuery({
+  args: { limit: v.number() },
+  returns: v.array(v.string()),
+  handler: async (ctx, { limit }) => {
+    const rows = await ctx.db.query('emailedCompanies').collect();
+    return rows
+      .sort((a, b) => b.lastSentAt.localeCompare(a.lastSentAt))
+      .slice(0, Math.max(0, Math.floor(limit)))
+      .map((row) => row.normalizedDomain)
+      .filter((domain) => domain.length > 0);
   },
 });
 

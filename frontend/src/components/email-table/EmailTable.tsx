@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import { makeFunctionReference } from 'convex/server';
 import { HotTable, HotColumn } from '@handsontable/react-wrapper';
 import { registerAllModules } from 'handsontable/registry';
 import type { CellValue } from 'handsontable/common';
+import { DeleteConfirmationModal } from '../modals';
 import 'handsontable/styles/handsontable.min.css';
 import 'handsontable/styles/ht-theme-main.min.css';
 
@@ -33,7 +34,30 @@ const setEmailRowMutation = makeFunctionReference<
   null
 >('emails:setEmailRow');
 
-const columns = ['Company', 'Email1', 'Email2', 'Email3', 'Status'] as const;
+const deleteCompaniesMutation = makeFunctionReference<
+  'mutation',
+  { externalIds: string[] },
+  null
+>('companies:deleteCompanies');
+
+const columns = [
+  'Company',
+  'Email1',
+  'Email2',
+  'Email3',
+  'Status',
+  'Action',
+] as const;
+const actionColumnIndex = 5;
+const deliveryFilterOptions = [
+  { value: 'all', label: 'All' },
+  { value: 'sent', label: 'Sent' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'not-sent', label: 'Not sent' },
+  { value: 'not-drafted', label: 'Not drafted' },
+] as const;
+
+type DeliveryFilter = (typeof deliveryFilterOptions)[number]['value'];
 
 /** Editable column index → the company email field it writes (others read-only). */
 const editableField: Record<number, 'email1' | 'email2' | 'email3'> = {
@@ -45,25 +69,74 @@ const editableField: Record<number, 'email1' | 'email2' | 'email3'> = {
 export function EmailTableScreen() {
   const rows = useQuery(listEmailTableRowsQuery, {});
   const setEmailRow = useMutation(setEmailRowMutation);
+  const deleteCompanies = useMutation(deleteCompaniesMutation);
 
   const [grid, setGrid] = useState<CellValue[][]>([]);
+  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>('all');
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<string[] | null>(
+    null,
+  );
   const companyIdsRef = useRef<string[]>([]);
+  const rowStatusesRef = useRef<string[]>([]);
   const companyKeyRef = useRef('');
+  const filteredRows = useMemo(() => {
+    const loadedRows = rows ?? [];
+    if (deliveryFilter === 'sent') {
+      return loadedRows.filter((row) => row.status === 'Sent');
+    }
+    if (deliveryFilter === 'failed') {
+      return loadedRows.filter((row) => row.status === 'Failed');
+    }
+    if (deliveryFilter === 'not-sent') {
+      return loadedRows.filter(
+        (row) =>
+          row.status !== 'Sent' &&
+          row.status !== 'Failed' &&
+          row.status !== 'Not Drafted',
+      );
+    }
+    if (deliveryFilter === 'not-drafted') {
+      return loadedRows.filter((row) => row.status === 'Not Drafted');
+    }
+    return loadedRows;
+  }, [rows, deliveryFilter]);
+  const filteredCompanyIds = useMemo(
+    () => filteredRows.map((row) => row.companyId),
+    [filteredRows],
+  );
 
   // Re-seed the grid only when the *set of companies* changes, so persisting an
   // edit (which updates the query) doesn't clobber the cell being typed in.
   useEffect(() => {
     if (rows === undefined) return;
-    const key = rows.map((r) => r.companyId).join('|');
+    const key = `${deliveryFilter}:${filteredRows.map((r) => r.companyId).join('|')}`;
     if (key === companyKeyRef.current) return;
     companyKeyRef.current = key;
-    companyIdsRef.current = rows.map((r) => r.companyId);
+    companyIdsRef.current = filteredRows.map((r) => r.companyId);
+    rowStatusesRef.current = filteredRows.map((r) => r.status);
     setGrid(
-      rows.map((r) => [r.company, r.email1, r.email2, r.email3, r.status]),
+      filteredRows.map((r) => [
+        r.company,
+        r.email1,
+        r.email2,
+        r.email3,
+        r.status,
+        r.status === 'Not Drafted' ? 'Delete' : '',
+      ]),
     );
-  }, [rows]);
+  }, [rows, filteredRows, deliveryFilter]);
 
-  const companyCount = (rows ?? []).length;
+  const companyCount = filteredRows.length;
+  const deleteFilteredRows = () => {
+    if (filteredCompanyIds.length === 0) return;
+    setPendingDeleteIds(filteredCompanyIds);
+  };
+  const confirmDeleteRows = async () => {
+    if (pendingDeleteIds === null) return;
+    const externalIds = pendingDeleteIds;
+    setPendingDeleteIds(null);
+    await deleteCompanies({ externalIds });
+  };
 
   return (
     <section className="emailTableScreen">
@@ -77,9 +150,39 @@ export function EmailTableScreen() {
       <div className="emailTableCanvas">
         <section className="emailTableCard">
           <div className="emailTableToolbar">
-            <span className="emailTableCount">
-              {companyCount.toLocaleString()} companies
-            </span>
+            <div className="emailTableHeaderControls">
+              <span className="emailTableCount">
+                {companyCount.toLocaleString()} companies
+              </span>
+              <div
+                className="emailTableFilter"
+                aria-label="Filter by sent status"
+              >
+                {deliveryFilterOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    className={`emailTableFilterButton ${
+                      deliveryFilter === option.value
+                        ? 'emailTableFilterButtonActive'
+                        : ''
+                    }`}
+                    type="button"
+                    aria-pressed={deliveryFilter === option.value}
+                    onClick={() => setDeliveryFilter(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                className="emailTableDeleteFiltered"
+                type="button"
+                disabled={filteredCompanyIds.length === 0}
+                onClick={deleteFilteredRows}
+              >
+                Delete filtered
+              </button>
+            </div>
           </div>
           <div className="emailSpreadsheetShell">
             <HotTable
@@ -94,8 +197,32 @@ export function EmailTableScreen() {
               licenseKey="non-commercial-and-evaluation"
               navigableHeaders
               manualColumnResize
-              colWidths={[220, 220, 220, 220, 110]}
+              colWidths={[220, 220, 220, 220, 120, 90]}
               rowHeights={32}
+              cells={(row, col) => {
+                if (
+                  col === actionColumnIndex &&
+                  rowStatusesRef.current[row] === 'Not Drafted'
+                ) {
+                  return {
+                    readOnly: true,
+                    className: 'emailTableActionCell',
+                  };
+                }
+                if (col === actionColumnIndex) {
+                  return { readOnly: true };
+                }
+                return {};
+              }}
+              afterOnCellMouseDown={(_event, coords) => {
+                if (coords.col !== actionColumnIndex || coords.row < 0) return;
+                if (rowStatusesRef.current[coords.row] !== 'Not Drafted') {
+                  return;
+                }
+                const companyId = companyIdsRef.current[coords.row];
+                if (companyId === undefined) return;
+                void deleteCompanies({ externalIds: [companyId] });
+              }}
               afterChange={(changes, source) => {
                 if (changes === null || source === 'loadData') return;
                 for (const [row, col, , next] of changes) {
@@ -117,11 +244,21 @@ export function EmailTableScreen() {
               <HotColumn title="Email1" data={1} width={220} type="text" />
               <HotColumn title="Email2" data={2} width={220} type="text" />
               <HotColumn title="Email3" data={3} width={220} type="text" />
-              <HotColumn title="Status" data={4} width={110} readOnly />
+              <HotColumn title="Status" data={4} width={120} readOnly />
+              <HotColumn title="Action" data={5} width={90} readOnly />
             </HotTable>
           </div>
         </section>
       </div>
+      {pendingDeleteIds !== null ? (
+        <DeleteConfirmationModal
+          count={pendingDeleteIds.length}
+          onCancel={() => setPendingDeleteIds(null)}
+          onConfirm={() => {
+            void confirmDeleteRows();
+          }}
+        />
+      ) : null}
     </section>
   );
 }

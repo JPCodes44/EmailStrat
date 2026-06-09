@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
 import { nonEmptyStrings, parsePlainEmailTemplate } from '@emailstrat/common';
 
-/** Rows for the Email Table: one per drafted company. */
+/** Rows for the Email Table: drafted companies plus contact-only not-drafted rows. */
 export const listEmailTableRows = query({
   args: {},
   handler: async (ctx) => {
@@ -20,12 +20,18 @@ export const listEmailTableRows = query({
     }[] = [];
 
     for (const company of companies) {
+      const hasRecipientEmail = Boolean(
+        company.email1?.trim() ||
+          company.email2?.trim() ||
+          company.email3?.trim(),
+      );
       const artifact = await ctx.db
         .query('artifacts')
         .withIndex('by_companyId', (q) => q.eq('companyId', company.externalId))
         .unique();
-      // Only drafted companies (those with a completed artifact) appear here.
-      if (artifact?.status !== 'completed') continue;
+      // Drafted companies always appear; not-drafted companies appear only if
+      // they already have recipient emails to review or remove.
+      if (artifact?.status !== 'completed' && !hasRecipientEmail) continue;
 
       rows.push({
         companyId: company.externalId,
@@ -33,11 +39,15 @@ export const listEmailTableRows = query({
         email1: company.email1 ?? '',
         email2: company.email2 ?? '',
         email3: company.email3 ?? '',
-        status: company.emailStatus ?? 'Not Sent',
-        emailTemplate: artifact.emailTemplate,
-        resumePdfUrl: artifact.resumePdfId
-          ? await ctx.storage.getUrl(artifact.resumePdfId)
-          : null,
+        status:
+          artifact?.status === 'completed'
+            ? (company.emailStatus ?? 'Not Sent')
+            : 'Not Drafted',
+        emailTemplate: artifact?.emailTemplate ?? '',
+        resumePdfUrl:
+          artifact?.resumePdfId !== undefined
+            ? await ctx.storage.getUrl(artifact.resumePdfId)
+            : null,
       });
     }
 

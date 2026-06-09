@@ -6,6 +6,7 @@ import {
   extractSubjectLine,
   nonEmptyStrings,
   normalizeCompanyDomain,
+  normalizeEmailAddress,
   nowIso,
   parsePlainEmailTemplate,
   renderToHtml,
@@ -141,6 +142,21 @@ describe('normalizeCompanyDomain', () => {
 
   it('returns an empty key for blank input', () => {
     expect(normalizeCompanyDomain('   ')).toBe('');
+  });
+});
+
+describe('normalizeEmailAddress', () => {
+  it('trims and lowercases valid recipient addresses', () => {
+    expect(normalizeEmailAddress(' Hiring@Acme.COM ')).toBe(
+      'hiring@acme.com',
+    );
+  });
+
+  it('rejects blank and malformed recipient addresses', () => {
+    expect(normalizeEmailAddress('   ')).toBeNull();
+    expect(normalizeEmailAddress('missing-domain@')).toBeNull();
+    expect(normalizeEmailAddress('@missing-local.test')).toBeNull();
+    expect(normalizeEmailAddress('not an email')).toBeNull();
   });
 });
 

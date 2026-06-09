@@ -89,6 +89,19 @@ export default defineSchema({
     sentCount: v.number(),
   }).index('by_normalizedDomain', ['normalizedDomain']),
   /**
+   * Persistent recipient history. Rows are created when outreach is queued,
+   * drafted, or sent so the same person is not contacted twice.
+   */
+  emailedRecipients: defineTable({
+    normalizedEmail: v.string(),
+    email: v.string(),
+    companyDomain: v.string(),
+    companyName: v.string(),
+    firstContactedAt: v.string(),
+    lastContactedAt: v.string(),
+    contactCount: v.number(),
+  }).index('by_normalizedEmail', ['normalizedEmail']),
+  /**
    * Per-provider API credit tracker, one row per provider, surfaced in the
    * navbar. `balanceUsd` is remaining $ (DeepSeek real; OpenAI + Gemini-paid
    * estimated from token usage). The Gemini free key has no dollar cost, so it

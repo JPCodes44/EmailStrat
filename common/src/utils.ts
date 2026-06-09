@@ -156,6 +156,15 @@ export function normalizeCompanyDomain(value: string): string {
   }
 }
 
+const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Canonicalize and validate a recipient email address for duplicate checks. */
+export function normalizeEmailAddress(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+  if (normalized.length === 0) return null;
+  return EMAIL_ADDRESS_PATTERN.test(normalized) ? normalized : null;
+}
+
 /** Pull a leading "Subject:" line out of plain generated email text. */
 export function extractSubjectLine(
   template: string | undefined,

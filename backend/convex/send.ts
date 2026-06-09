@@ -12,6 +12,7 @@ import {
   extractSubjectLine,
   nonEmptyStrings,
   normalizeCompanyDomain,
+  normalizeEmailAddress,
 } from '@emailstrat/common';
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
@@ -23,6 +24,122 @@ function recipientEmails(company: {
   email3?: string;
 }): string[] {
   return nonEmptyStrings([company.email1, company.email2, company.email3]);
+}
+
+interface PendingRecipient {
+  companyId: string;
+  company: string;
+  domain: string;
+  normalizedDomain: string;
+  to: string;
+  normalizedEmail: string;
+  subject: string;
+}
+
+function displayEmail(value: string): string {
+  return value.trim() || '(blank)';
+}
+
+async function subjectForCompany(
+  ctx: MutationCtx,
+  companyId: string,
+  companyName: string,
+): Promise<string> {
+  const artifact = await ctx.db
+    .query('artifacts')
+    .withIndex('by_companyId', (q) => q.eq('companyId', companyId))
+    .unique();
+  return (
+    artifact?.emailSubject ??
+    extractSubjectLine(artifact?.emailTemplate) ??
+    `Outreach to ${companyName}`
+  );
+}
+
+async function assertCompanyNotContacted(
+  ctx: MutationCtx,
+  normalizedDomain: string,
+  label: string,
+) {
+  if (normalizedDomain.length === 0) return;
+  const existing = await ctx.db
+    .query('emailedCompanies')
+    .withIndex('by_normalizedDomain', (q) =>
+      q.eq('normalizedDomain', normalizedDomain),
+    )
+    .unique();
+  if (existing !== null) {
+    throw new Error(`Company already contacted: ${label}`);
+  }
+}
+
+async function assertRecipientNotContacted(
+  ctx: MutationCtx,
+  normalizedEmail: string,
+) {
+  const existing = await ctx.db
+    .query('emailedRecipients')
+    .withIndex('by_normalizedEmail', (q) =>
+      q.eq('normalizedEmail', normalizedEmail),
+    )
+    .unique();
+  if (existing !== null) {
+    throw new Error(`Recipient already contacted: ${existing.email}`);
+  }
+}
+
+async function buildPendingRecipients(
+  ctx: MutationCtx,
+  companyIds: string[],
+): Promise<PendingRecipient[]> {
+  const pending: PendingRecipient[] = [];
+  const batchEmails = new Set<string>();
+  const batchDomains = new Set<string>();
+
+  for (const companyId of companyIds) {
+    const company = await ctx.db
+      .query('companies')
+      .withIndex('by_externalId', (q) => q.eq('externalId', companyId))
+      .unique();
+    if (company === null) continue;
+
+    const emails = recipientEmails(company);
+    if (emails.length === 0) continue;
+
+    const domain = company.domain;
+    const normalizedDomain = normalizeCompanyDomain(domain);
+    if (normalizedDomain.length > 0) {
+      if (batchDomains.has(normalizedDomain)) {
+        throw new Error(`Company appears more than once: ${domain}`);
+      }
+      batchDomains.add(normalizedDomain);
+    }
+    await assertCompanyNotContacted(ctx, normalizedDomain, company.name);
+
+    const subject = await subjectForCompany(ctx, companyId, company.name);
+    for (const to of emails) {
+      const normalizedEmail = normalizeEmailAddress(to);
+      if (normalizedEmail === null) {
+        throw new Error(`Invalid recipient email: ${displayEmail(to)}`);
+      }
+      if (batchEmails.has(normalizedEmail)) {
+        throw new Error(`Duplicate recipient in batch: ${normalizedEmail}`);
+      }
+      batchEmails.add(normalizedEmail);
+      await assertRecipientNotContacted(ctx, normalizedEmail);
+      pending.push({
+        companyId,
+        company: company.name,
+        domain,
+        normalizedDomain,
+        to,
+        normalizedEmail,
+        subject,
+      });
+    }
+  }
+
+  return pending;
 }
 
 /** Per-company preview for the Schedule Submission screen. */
@@ -78,37 +195,7 @@ export const enqueueSend = mutation({
     const now = new Date().toISOString();
     const batchId = `batch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    // Flatten the selection into one pending item per (company, recipient).
-    const pending: {
-      companyId: string;
-      company: string;
-      to: string;
-      subject: string;
-    }[] = [];
-    for (const companyId of companyIds) {
-      const company = await ctx.db
-        .query('companies')
-        .withIndex('by_externalId', (q) => q.eq('externalId', companyId))
-        .unique();
-      if (company === null) continue;
-      const emails = recipientEmails(company);
-      if (emails.length === 0) continue;
-
-      const artifact = await ctx.db
-        .query('artifacts')
-        .withIndex('by_companyId', (q) => q.eq('companyId', companyId))
-        .unique();
-      const subject =
-        artifact?.emailSubject ??
-        extractSubjectLine(artifact?.emailTemplate) ??
-        `Outreach to ${company.name}`;
-
-      for (const to of emails) {
-        pending.push({ companyId, company: company.name, to, subject });
-      }
-      // Company-level visible state (read by the Email Table).
-      await ctx.db.patch(company._id, { emailStatus: 'Sending' });
-    }
+    const pending = await buildPendingRecipients(ctx, companyIds);
 
     const total = pending.length;
     for (let i = 0; i < total; i += 1) {
@@ -134,6 +221,23 @@ export const enqueueSend = mutation({
       });
     }
 
+    const contactedAt = now;
+    const contactedCompanyIds = new Set<string>();
+    for (const item of pending) {
+      if (!contactedCompanyIds.has(item.companyId)) {
+        await recordContactedCompany(ctx, item, contactedAt);
+        contactedCompanyIds.add(item.companyId);
+      }
+      await recordContactedRecipient(ctx, item, contactedAt);
+      const company = await ctx.db
+        .query('companies')
+        .withIndex('by_externalId', (q) => q.eq('externalId', item.companyId))
+        .unique();
+      if (company !== null) {
+        await ctx.db.patch(company._id, { emailStatus: 'Sending' });
+      }
+    }
+
     return { batchId, queued: total };
   },
 });
@@ -148,36 +252,7 @@ export const enqueueDrafts = mutation({
   handler: async (ctx, { companyIds, scheduledAtMs, method }) => {
     const now = new Date().toISOString();
     const batchId = `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const pending: {
-      companyId: string;
-      company: string;
-      to: string;
-      subject: string;
-    }[] = [];
-
-    for (const companyId of companyIds) {
-      const company = await ctx.db
-        .query('companies')
-        .withIndex('by_externalId', (q) => q.eq('externalId', companyId))
-        .unique();
-      if (company === null) continue;
-      const emails = recipientEmails(company);
-      if (emails.length === 0) continue;
-
-      const artifact = await ctx.db
-        .query('artifacts')
-        .withIndex('by_companyId', (q) => q.eq('companyId', companyId))
-        .unique();
-      const subject =
-        artifact?.emailSubject ??
-        extractSubjectLine(artifact?.emailTemplate) ??
-        `Outreach to ${company.name}`;
-
-      for (const to of emails) {
-        pending.push({ companyId, company: company.name, to, subject });
-      }
-      await ctx.db.patch(company._id, { emailStatus: 'Drafted' });
-    }
+    const pending = await buildPendingRecipients(ctx, companyIds);
 
     const total = pending.length;
     for (let i = 0; i < total; i += 1) {
@@ -197,6 +272,23 @@ export const enqueueDrafts = mutation({
         createdAt: now,
         draftedAt: now,
       });
+    }
+
+    const contactedAt = now;
+    const contactedCompanyIds = new Set<string>();
+    for (const item of pending) {
+      if (!contactedCompanyIds.has(item.companyId)) {
+        await recordContactedCompany(ctx, item, contactedAt);
+        contactedCompanyIds.add(item.companyId);
+      }
+      await recordContactedRecipient(ctx, item, contactedAt);
+      const company = await ctx.db
+        .query('companies')
+        .withIndex('by_externalId', (q) => q.eq('externalId', item.companyId))
+        .unique();
+      if (company !== null) {
+        await ctx.db.patch(company._id, { emailStatus: 'Drafted' });
+      }
     }
 
     return { batchId, queued: total };
@@ -362,20 +454,23 @@ async function refreshCompanyStatusAfterUnschedule(
   }
 }
 
-async function recordEmailedCompany(
+async function recordContactedCompany(
   ctx: MutationCtx,
   item: {
     companyId: string;
     company: string;
+    domain?: string;
+    normalizedDomain?: string;
   },
-  sentAt: string,
+  contactedAt: string,
 ) {
   const company = await ctx.db
     .query('companies')
     .withIndex('by_externalId', (q) => q.eq('externalId', item.companyId))
     .unique();
-  const domain = company?.domain ?? item.companyId;
-  const normalizedDomain = normalizeCompanyDomain(domain);
+  const domain = item.domain ?? company?.domain ?? item.companyId;
+  const normalizedDomain =
+    item.normalizedDomain ?? normalizeCompanyDomain(domain);
   if (normalizedDomain.length === 0) return;
 
   const existing = await ctx.db
@@ -390,8 +485,8 @@ async function recordEmailedCompany(
       normalizedDomain,
       domain,
       name: company?.name ?? item.company,
-      firstSentAt: sentAt,
-      lastSentAt: sentAt,
+      firstSentAt: contactedAt,
+      lastSentAt: contactedAt,
       sentCount: 1,
     });
     return;
@@ -400,9 +495,125 @@ async function recordEmailedCompany(
   await ctx.db.patch(existing._id, {
     domain,
     name: company?.name ?? item.company,
-    lastSentAt: sentAt,
-    sentCount: existing.sentCount + 1,
+    lastSentAt: contactedAt,
+    sentCount: existing.sentCount,
   });
+}
+
+async function recordContactedRecipient(
+  ctx: MutationCtx,
+  item: {
+    companyId: string;
+    company: string;
+    domain?: string;
+    normalizedEmail?: string;
+    to: string;
+  },
+  contactedAt: string,
+) {
+  const normalizedEmail = item.normalizedEmail ?? normalizeEmailAddress(item.to);
+  if (normalizedEmail === null) return;
+
+  const company = await ctx.db
+    .query('companies')
+    .withIndex('by_externalId', (q) => q.eq('externalId', item.companyId))
+    .unique();
+  const companyDomain = item.domain ?? company?.domain ?? item.companyId;
+  const companyName = company?.name ?? item.company;
+  const existing = await ctx.db
+    .query('emailedRecipients')
+    .withIndex('by_normalizedEmail', (q) =>
+      q.eq('normalizedEmail', normalizedEmail),
+    )
+    .unique();
+
+  if (existing === null) {
+    await ctx.db.insert('emailedRecipients', {
+      normalizedEmail,
+      email: item.to.trim(),
+      companyDomain,
+      companyName,
+      firstContactedAt: contactedAt,
+      lastContactedAt: contactedAt,
+      contactCount: 1,
+    });
+    return;
+  }
+
+  await ctx.db.patch(existing._id, {
+    email: item.to.trim(),
+    companyDomain,
+    companyName,
+    lastContactedAt: contactedAt,
+    contactCount: existing.contactCount,
+  });
+}
+
+async function removeCanceledContactReservations(
+  ctx: MutationCtx,
+  canceled: {
+    companyId: string;
+    company: string;
+    to: string;
+    createdAt: string;
+  }[],
+) {
+  const canceledCompanyIds = new Set(canceled.map((item) => item.companyId));
+  for (const companyId of canceledCompanyIds) {
+    const remainingRows = await ctx.db
+      .query('sendQueue')
+      .withIndex('by_company', (q) => q.eq('companyId', companyId))
+      .collect();
+    const hasRemainingContact = remainingRows.some(
+      (row) =>
+        row.status === 'queued' ||
+        row.status === 'drafted' ||
+        row.status === 'sent',
+    );
+    if (hasRemainingContact) continue;
+
+    const company = await ctx.db
+      .query('companies')
+      .withIndex('by_externalId', (q) => q.eq('externalId', companyId))
+      .unique();
+    const normalizedDomain = normalizeCompanyDomain(company?.domain ?? companyId);
+    const companyLedger =
+      normalizedDomain.length > 0
+        ? await ctx.db
+            .query('emailedCompanies')
+            .withIndex('by_normalizedDomain', (q) =>
+              q.eq('normalizedDomain', normalizedDomain),
+            )
+            .unique()
+        : null;
+    if (
+      companyLedger !== null &&
+      canceled.some(
+        (item) =>
+          item.companyId === companyId &&
+          item.createdAt === companyLedger.firstSentAt,
+      )
+    ) {
+      await ctx.db.delete(companyLedger._id);
+    }
+  }
+
+  for (const item of canceled) {
+    const normalizedEmail = normalizeEmailAddress(item.to);
+    if (normalizedEmail === null) continue;
+    const recipientLedger = await ctx.db
+      .query('emailedRecipients')
+      .withIndex('by_normalizedEmail', (q) =>
+        q.eq('normalizedEmail', normalizedEmail),
+      )
+      .unique();
+    if (
+      recipientLedger !== null &&
+      recipientLedger.firstContactedAt === item.createdAt
+    ) {
+      await ctx.db.delete(recipientLedger._id);
+    }
+  }
 }
 
 /** Remove unsent queue rows. */
@@ -410,6 +621,12 @@ export const removeQueueItems = internalMutation({
   args: { itemIds: v.array(v.id('sendQueue')) },
   handler: async (ctx, { itemIds }) => {
     const companyIds = new Set<string>();
+    const canceled: {
+      companyId: string;
+      company: string;
+      to: string;
+      createdAt: string;
+    }[] = [];
     for (const itemId of itemIds) {
       const item = await ctx.db.get(itemId);
       if (
@@ -419,8 +636,16 @@ export const removeQueueItems = internalMutation({
         continue;
       }
       companyIds.add(item.companyId);
+      canceled.push({
+        companyId: item.companyId,
+        company: item.company,
+        to: item.to,
+        createdAt: item.createdAt,
+      });
       await ctx.db.delete(itemId);
     }
+
+    await removeCanceledContactReservations(ctx, canceled);
 
     for (const companyId of companyIds) {
       await refreshCompanyStatusAfterUnschedule(ctx, companyId);
@@ -457,7 +682,8 @@ export const markQueueItemSent = internalMutation({
       sentAt,
       error: undefined,
     });
-    await recordEmailedCompany(ctx, item, sentAt);
+    await recordContactedCompany(ctx, item, sentAt);
+    await recordContactedRecipient(ctx, item, sentAt);
     await rollUpCompanyStatus(ctx, item.companyId);
   },
 });
