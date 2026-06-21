@@ -1,4 +1,4 @@
-# EmailStrat
+# EmailStrat - Update: I got a job!
 
 A custom email template generator — a full-stack TypeScript monorepo.
 
